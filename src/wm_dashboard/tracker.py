@@ -157,8 +157,18 @@ def _load_portfolio_from_yaml(path: Path) -> Portfolio:
     """
     with path.open() as fh:
         raw = yaml.safe_load(fh) or {}
-    asof_iso = raw.get("asof_iso")
-    asof = datetime.fromisoformat(asof_iso) if asof_iso else datetime.fromtimestamp(path.stat().st_mtime)
+    # PyYAML auto-parses ISO timestamps into ``datetime`` rather than ``str``,
+    # so accept both shapes here.
+    asof_raw = raw.get("asof_iso")
+    if isinstance(asof_raw, datetime):
+        asof = asof_raw
+    elif isinstance(asof_raw, str):
+        try:
+            asof = datetime.fromisoformat(asof_raw)
+        except ValueError:
+            asof = datetime.fromtimestamp(path.stat().st_mtime)
+    else:
+        asof = datetime.fromtimestamp(path.stat().st_mtime)
     positions: list[Position] = []
     cash_pct = 0.0
     for row in raw.get("positions") or []:

@@ -18,3 +18,8 @@ def ips_path() -> Path:
 @pytest.fixture
 def targets_path() -> Path:
     return CONFIG / "targets.yaml"
+
+
+@pytest.fixture
+def positions_yaml_path() -> Path:
+    return CONFIG / "positions.yaml"
