@@ -1,0 +1,23 @@
+# Immutable trade-log of trigger lifecycle. Append-only — never edit existing rows.
+history:
+- ticker: INTC
+  review_by: '2026-04-24'
+  closed_on: '2026-04-30'
+  outcome: EXECUTED
+  confidence_at_open: LOW
+  workbook_weight_at_close_pct: 1.5
+  description: Wed 2026-04-23 AMC Q1 earnings. Conditional starter 1.0-1.5% on beat + 18A yield >= 60%.
+    Funded from cash.
+  notes: Q1 earnings beat + 18A yield met threshold; starter 1.5% executed Apr 24 (top of 1.0-1.5% range,
+    funded from cash 17.5 -> 16.0%).
+- ticker: UNH
+  review_by: '2026-04-22'
+  closed_on: '2026-04-30'
+  outcome: REVERSED
+  confidence_at_open: MED
+  workbook_weight_at_close_pct: 3.0
+  description: Q1 earnings (Mon 2026-04-21). If beat + neutral MA guidance, add 3.0 -> 3.5%; cash 20.0
+    -> 19.5%. Reverse if miss.
+  notes: 'Add to 3.5% pre-staged in Daily_2026-04-22 contingent on earnings beat + neutral MA guidance.
+    Workbook at 3.00% indicates contingency triggered: earnings outcome did not meet conditions, add was
+    reversed, position held flat at 3.00%.'
