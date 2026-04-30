@@ -603,21 +603,23 @@ def page_whatif() -> None:
 
 def page_reports() -> None:
     st.markdown("## Reports")
-    if not PORTFOLIO_DIR.exists():
+    reports = list_reports(PORTFOLIO_DIR)
+    if not reports:
         st.markdown(
             "<div class='card'>"
-            "Reports live alongside the portfolio workbook on the host machine. "
-            "On the hosted deployment this directory is not mounted, so report links "
-            "are unavailable here. Open the dashboard locally to access "
-            "<code>Daily / Weekly / Quarterly / IPS</code> .docx files."
+            "No reports found. On the cloud deployment, reports live in "
+            "<code>data/reports/</code> in the repo — sync new files with "
+            "<code>python scripts/sync_reports.py</code> and push."
             "</div>",
             unsafe_allow_html=True,
         )
         return
-    reports = list_reports(PORTFOLIO_DIR)
-    if not reports:
-        st.info(f"No reports found under {PORTFOLIO_DIR}")
-        return
+    st.markdown(
+        "<div class='tag-sourced'>"
+        "Cloud reports are downloaded from GitHub on click; local reports open in Word."
+        "</div>",
+        unsafe_allow_html=True,
+    )
     for kind in ("Daily", "Weekly", "Quarterly", "IPS"):
         items = [r for r in reports if r.kind == kind]
         if not items:
@@ -626,9 +628,10 @@ def page_reports() -> None:
         rows_html = "".join(
             f"<tr>"
             f"<td><strong>{r.label}</strong></td>"
-            f"<td class='tag-sourced'>modified {r.modified:%Y-%m-%d %H:%M}</td>"
+            f"<td class='tag-sourced'>modified {r.modified:%Y-%m-%d %H:%M} · "
+            f"{'repo' if r.in_repo else 'local'}</td>"
             f"<td class='num'>"
-            f"<a href='{r.file_url}' "
+            f"<a href='{r.file_url}' target='_blank' rel='noopener' "
             f"style='display:inline-block;padding:2px 12px;background:var(--ink);"
             f"color:var(--paper) !important;text-decoration:none;font-size:0.72rem;"
             f"font-weight:600;letter-spacing:0.06em;text-transform:uppercase;border-radius:2px'>"
@@ -638,7 +641,7 @@ def page_reports() -> None:
         )
         st.markdown(
             "<table><thead><tr>"
-            "<th>Report</th><th>Modified</th><th>Link</th>"
+            "<th>Report</th><th>Source &amp; modified</th><th>Link</th>"
             "</tr></thead>"
             f"<tbody>{rows_html}</tbody></table>",
             unsafe_allow_html=True,
