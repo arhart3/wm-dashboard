@@ -84,4 +84,17 @@ jobs:
           fi
           ts=$(date -u +"%Y-%m-%dT%H:%MZ")
           git commit -m "[bot] price refresh ${ts}"
-          git push
+          # Race-resilient push: if a concurrent push (manual or another
+          # workflow run) landed while we were fetching, rebase on top and
+          # retry. Three attempts is enough — at 30-min cadence the chance
+          # of three consecutive races is effectively zero.
+          for attempt in 1 2 3; do
+            if git push origin main; then
+              echo "Push succeeded on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push rejected; pulling and rebasing (attempt ${attempt})."
+            git pull --rebase origin main
+          done
+          echo "Push failed after 3 attempts." >&2
+          exit 1
