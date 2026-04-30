@@ -46,33 +46,68 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 # ---------------------------------------------------------------------------
 # Cached data loaders
 # ---------------------------------------------------------------------------
+#
+# Every cache key includes the underlying file's mtime so a fresh write to
+# prices.json / positions.yaml / triggers.yaml busts the cache immediately.
+# Without this, a Streamlit Cloud container that reads a file once would
+# keep serving that stale read for the full TTL (15 min), which matters
+# because the cron rewrites prices.json every 30 min.
+
+
+def _mtime(path: Path) -> float:
+    """File mtime or 0 if absent. Used as a cache-invalidation key."""
+    try:
+        return path.stat().st_mtime
+    except FileNotFoundError:
+        return 0.0
 
 
 @st.cache_data(ttl=900)
-def _load_portfolio() -> Portfolio:
+def _load_portfolio_cached(workbook_mtime: float, positions_mtime: float) -> Portfolio:
     return load_portfolio(WORKBOOK, targets_path=CONFIG_DIR / "targets.yaml")
 
 
+def _load_portfolio() -> Portfolio:
+    return _load_portfolio_cached(_mtime(WORKBOOK), _mtime(CONFIG_DIR / "positions.yaml"))
+
+
 @st.cache_data(ttl=900)
-def _load_ips() -> IpsConfig:
+def _load_ips_cached(ips_mtime: float) -> IpsConfig:
     return load_ips(CONFIG_DIR / "ips.yaml")
 
 
+def _load_ips() -> IpsConfig:
+    return _load_ips_cached(_mtime(CONFIG_DIR / "ips.yaml"))
+
+
 @st.cache_data(ttl=900)
-def _load_benchmark() -> dict:
+def _load_benchmark_cached(mtime: float) -> dict:
     with (CONFIG_DIR / "benchmarks.yaml").open() as fh:
         return yaml.safe_load(fh)["benchmark"]
 
 
+def _load_benchmark() -> dict:
+    return _load_benchmark_cached(_mtime(CONFIG_DIR / "benchmarks.yaml"))
+
+
 @st.cache_data(ttl=900)
-def _load_triggers() -> list[dict]:
+def _load_triggers_cached(mtime: float) -> list[dict]:
     with (CONFIG_DIR / "triggers.yaml").open() as fh:
         return (yaml.safe_load(fh) or {}).get("triggers", []) or []
 
 
+def _load_triggers() -> list[dict]:
+    return _load_triggers_cached(_mtime(CONFIG_DIR / "triggers.yaml"))
+
+
 @st.cache_data(ttl=900)
-def _load_quotes(tickers: tuple[str, ...]) -> dict[str, Quote]:
+def _load_quotes_cached(tickers: tuple[str, ...], prices_mtime: float) -> dict[str, Quote]:
     return latest_prices(list(tickers))
+
+
+def _load_quotes(tickers: tuple[str, ...]) -> dict[str, Quote]:
+    prices_path = PROJECT_ROOT / "data" / "prices.json"
+    return _load_quotes_cached(tickers, _mtime(prices_path))
 
 
 @st.cache_data(ttl=3600)
