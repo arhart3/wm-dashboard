@@ -1,0 +1,35 @@
+# Target weights (percentage points). Seeded from .memory/wm_portfolio.md.
+# CRWD and INTC were added post-inception; targets default to their current
+# weight at entry (1.5% each).
+#
+# When the workbook gains a "Target Weight" column, the tracker should prefer
+# it over this file. Until then, this is the source for drift calculations.
+targets:
+  NVDA: 6.5
+  AMZN: 5.5
+  AVGO: 4.0
+  MSFT: 4.0
+  PANW: 4.0
+  PLTR: 3.0
+  ORCL: 3.0
+  TSM:  3.0
+  MU:   2.5
+  META: 4.5
+  GOOGL: 3.0
+  NFLX: 1.5
+  JPM:  4.5
+  V:    3.0
+  LLY:  4.0
+  UNH:  3.0
+  ABBV: 1.5
+  DASH: 2.0
+  COST: 2.5
+  XOM:  2.5
+  EOG:  2.0
+  NEE:  2.0
+  QQQ:  3.5
+  VUG:  2.5
+  SCHD: 2.5
+  CRWD: 1.5
+  INTC: 1.5
+  CASH: 20.0

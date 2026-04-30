@@ -1,0 +1,3 @@
+benchmark:
+  ticker: ^GSPC
+  label: "S&P 500 TR"

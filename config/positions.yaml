@@ -1,0 +1,233 @@
+# Snapshot of the positions table from the workbook. Used as a fallback
+# when the source xlsx is unavailable (e.g. on Streamlit Cloud).
+#
+# Refresh by running:
+#   python scripts/export_positions.py
+#
+# Generated: 2026-04-30 07:57 from WM_Growth_Portfolio_Apr2026.xlsx
+
+asof_iso: 2026-04-29T05:57:54.102060
+positions:
+  - ticker: NVDA
+    company: "NVIDIA Corporation"
+    sector: "Technology – AI Infrastructure"
+    current_weight_pct: 6.5
+    target_weight_pct: 6.5
+    price: 181.86
+    is_cash: false
+    is_etf: false
+  - ticker: AMZN
+    company: "Amazon.com, Inc."
+    sector: "Technology – Cloud / E-Commerce"
+    current_weight_pct: 5.5
+    target_weight_pct: 5.5
+    price: 211.0
+    is_cash: false
+    is_etf: false
+  - ticker: META
+    company: "Meta Platforms, Inc."
+    sector: "Communication Services"
+    current_weight_pct: 4.5
+    target_weight_pct: 4.5
+    price: 575.0
+    is_cash: false
+    is_etf: false
+  - ticker: LLY
+    company: "Eli Lilly and Company"
+    sector: "Healthcare – Pharmaceuticals"
+    current_weight_pct: 4.5
+    target_weight_pct: 4.0
+    price: 944.0
+    is_cash: false
+    is_etf: false
+  - ticker: AVGO
+    company: "Broadcom Inc."
+    sector: "Technology – Semiconductors"
+    current_weight_pct: 4.0
+    target_weight_pct: 4.0
+    price: 265.0
+    is_cash: false
+    is_etf: false
+  - ticker: MSFT
+    company: "Microsoft Corporation"
+    sector: "Technology – Enterprise Software"
+    current_weight_pct: 4.0
+    target_weight_pct: 4.0
+    price: 360.0
+    is_cash: false
+    is_etf: false
+  - ticker: PANW
+    company: "Palo Alto Networks, Inc."
+    sector: "Technology – Cybersecurity"
+    current_weight_pct: 4.0
+    target_weight_pct: 4.0
+    price: 185.0
+    is_cash: false
+    is_etf: false
+  - ticker: JPM
+    company: "JPMorgan Chase & Co."
+    sector: "Financials – Banking"
+    current_weight_pct: 4.5
+    target_weight_pct: 4.5
+    price: 295.63
+    is_cash: false
+    is_etf: false
+  - ticker: QQQ
+    company: "Invesco QQQ Trust (ETF)"
+    sector: "ETF – Nasdaq-100"
+    current_weight_pct: 3.5
+    target_weight_pct: 3.5
+    price: 490.0
+    is_cash: false
+    is_etf: true
+  - ticker: GOOGL
+    company: "Alphabet Inc."
+    sector: "Technology – Search / Cloud"
+    current_weight_pct: 3.0
+    target_weight_pct: 3.0
+    price: 175.0
+    is_cash: false
+    is_etf: false
+  - ticker: PLTR
+    company: "Palantir Technologies, Inc."
+    sector: "Technology – AI Software"
+    current_weight_pct: 3.0
+    target_weight_pct: 3.0
+    price: 141.17
+    is_cash: false
+    is_etf: false
+  - ticker: UNH
+    company: "UnitedHealth Group Inc."
+    sector: "Healthcare – Managed Care"
+    current_weight_pct: 3.0
+    target_weight_pct: 3.0
+    price: 510.0
+    is_cash: false
+    is_etf: false
+  - ticker: XOM
+    company: "Exxon Mobil Corporation"
+    sector: "Energy – Integrated Oil & Gas"
+    current_weight_pct: 3.0
+    target_weight_pct: 2.5
+    price: 161.14
+    is_cash: false
+    is_etf: false
+  - ticker: V
+    company: "Visa Inc."
+    sector: "Financials – Payments"
+    current_weight_pct: 3.0
+    target_weight_pct: 3.0
+    price: 303.62
+    is_cash: false
+    is_etf: false
+  - ticker: VUG
+    company: "Vanguard Growth ETF"
+    sector: "ETF – Large-Cap Growth"
+    current_weight_pct: 2.5
+    target_weight_pct: 2.5
+    price: 390.0
+    is_cash: false
+    is_etf: true
+  - ticker: SCHD
+    company: "Schwab U.S. Dividend ETF"
+    sector: "ETF – Dividend / Income"
+    current_weight_pct: 2.5
+    target_weight_pct: 2.5
+    price: 30.5
+    is_cash: false
+    is_etf: true
+  - ticker: ORCL
+    company: "Oracle Corporation"
+    sector: "Technology – Cloud Database"
+    current_weight_pct: 3.5
+    target_weight_pct: 3.0
+    price: 144.43
+    is_cash: false
+    is_etf: false
+  - ticker: MU
+    company: "Micron Technology, Inc."
+    sector: "Technology – Memory"
+    current_weight_pct: 2.5
+    target_weight_pct: 2.5
+    price: 235.0
+    is_cash: false
+    is_etf: false
+  - ticker: TSM
+    company: "Taiwan Semiconductor Mfg"
+    sector: "Technology – Foundry"
+    current_weight_pct: 3.0
+    target_weight_pct: 3.0
+    price: 178.0
+    is_cash: false
+    is_etf: false
+  - ticker: EOG
+    company: "EOG Resources, Inc."
+    sector: "Energy – E&P"
+    current_weight_pct: 2.5
+    target_weight_pct: 2.0
+    price: 135.0
+    is_cash: false
+    is_etf: false
+  - ticker: COST
+    company: "Costco Wholesale Corporation"
+    sector: "Consumer Staples"
+    current_weight_pct: 2.5
+    target_weight_pct: 2.5
+    price: 1016.57
+    is_cash: false
+    is_etf: false
+  - ticker: DASH
+    company: "DoorDash, Inc."
+    sector: "Consumer Discretionary"
+    current_weight_pct: 2.0
+    target_weight_pct: 2.0
+    price: 200.0
+    is_cash: false
+    is_etf: false
+  - ticker: NEE
+    company: "NextEra Energy, Inc."
+    sector: "Utilities – Renewables"
+    current_weight_pct: 2.0
+    target_weight_pct: 2.0
+    price: 80.0
+    is_cash: false
+    is_etf: false
+  - ticker: ABBV
+    company: "AbbVie Inc."
+    sector: "Healthcare – Biotech / Pharma"
+    current_weight_pct: 1.5
+    target_weight_pct: 1.5
+    price: 195.0
+    is_cash: false
+    is_etf: false
+  - ticker: NFLX
+    company: "Netflix, Inc."
+    sector: "Communication Services"
+    current_weight_pct: 1.5
+    target_weight_pct: 1.5
+    price: 1050.0
+    is_cash: false
+    is_etf: false
+  - ticker: CRWD
+    company: "CrowdStrike Holdings, Inc."
+    sector: "Technology – Cybersecurity"
+    current_weight_pct: 1.5
+    target_weight_pct: 1.5
+    price: 450.0
+    is_cash: false
+    is_etf: false
+  - ticker: INTC
+    company: "Intel Corporation"
+    sector: "Technology – Semiconductors"
+    current_weight_pct: 1.5
+    target_weight_pct: 1.5
+    price: 34.0
+    is_cash: false
+    is_etf: false
+  - ticker: CASH
+    company: "Cash / Money Market Reserve"
+    sector: "Cash & Equivalents"
+    current_weight_pct: 15.0
+    target_weight_pct: 20.0
+    is_cash: true
+    is_etf: false

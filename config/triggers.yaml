@@ -1,0 +1,23 @@
+# Active triggers — edit in place. Mirrors .memory/open_items.md but is the
+# operational source for the dashboard.
+triggers:
+  - ticker: UNH
+    description: "Q1 earnings (Mon 2026-04-21). If beat + neutral MA guidance, add 3.0 -> 3.5%; cash 20.0 -> 19.5%. Reverse if miss."
+    confidence: MED
+    review_by: 2026-04-22
+  - ticker: INTC
+    description: "Wed 2026-04-23 AMC Q1 earnings. Conditional starter 1.0-1.5% on beat + 18A yield >= 60%. Funded from cash."
+    confidence: LOW
+    review_by: 2026-04-24
+  - ticker: LLY
+    description: "Intraday trigger at $920. Add 4.0 -> 4.5% on sustained close below $920."
+    confidence: MED
+    review_by: 2026-05-15
+  - ticker: XOM/EOG
+    description: "Energy WTI $90 trigger. On sustained close < $90: trim XOM 2.5 -> 2.0%, EOG 2.0 -> 1.5%, cash +1.0%."
+    confidence: MED
+    review_by: 2026-05-15
+  - ticker: PORTFOLIO
+    description: "Drawdown trigger WTD >= -3%. Response: raise cash toward 20% ceiling, trim highest-beta names first."
+    confidence: HIGH
+    review_by: 2026-12-31

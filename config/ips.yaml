@@ -1,0 +1,21 @@
+# WM Growth Portfolio — IPS v1.0 hard constraints.
+# Source of truth: WM_Growth_Portfolio_IPS_v1.0.docx (effective 2026-04-21).
+# All percentages are stated in percentage points (e.g. 7.0 means 7.0%, NOT 0.07).
+
+max_position_equity_pct: 7.0
+max_position_etf_pct: 5.0
+max_sector_pct: 35.0
+cash_band_min_pct: 10.0
+cash_band_max_pct: 20.0
+rebalance_tolerance_pct: 0.5
+tracking_error_ceiling_pct: 6.0
+beta_min: 0.85
+beta_max: 1.25
+max_drawdown_pct: -15.0
+max_volatility_pct: 22.0
+no_leverage: true
+
+# Severity rules: distance from a hard limit at which we escalate to BREACH vs.
+# REVIEW. Within `review_buffer_pct` of a limit we surface REVIEW; over the
+# limit we surface BREACH.
+review_buffer_pct: 0.25

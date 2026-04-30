@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS
+.DS_Store
+
+# Local-only price cache. The cron-managed data/prices.json and
+# data/history.parquet are intentionally tracked.
+data/cache/
+
+# Streamlit local state
+.streamlit/secrets.toml
+
+# Claude Code session artifacts (local dev only)
+.claude/

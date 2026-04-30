@@ -1,0 +1,98 @@
+# Universe of tickers to refresh on the cron. Source-of-truth for the
+# fetch script — survives an unavailable workbook. Add or remove rows
+# manually when the holdings list changes.
+#
+# Schema:
+#   ticker:       symbol (yfinance / Finnhub form)
+#   asset_class:  equity | etf | index
+#   sector:       free text, optional
+#   benchmark:    true if this is the IPS benchmark (single ticker)
+#
+# ^GSPC is the IPS benchmark (S&P 500 index). Finnhub free tier does not
+# cover indices, so the fetch script falls through to yfinance for it.
+
+tickers:
+  - ticker: NVDA
+    asset_class: equity
+    sector: "Technology – AI Infrastructure"
+  - ticker: AMZN
+    asset_class: equity
+    sector: "Technology – Cloud / E-Commerce"
+  - ticker: META
+    asset_class: equity
+    sector: "Communication Services"
+  - ticker: LLY
+    asset_class: equity
+    sector: "Healthcare – Pharmaceuticals"
+  - ticker: AVGO
+    asset_class: equity
+    sector: "Technology – Semiconductors"
+  - ticker: MSFT
+    asset_class: equity
+    sector: "Technology – Enterprise Software"
+  - ticker: PANW
+    asset_class: equity
+    sector: "Technology – Cybersecurity"
+  - ticker: JPM
+    asset_class: equity
+    sector: "Financials – Banking"
+  - ticker: QQQ
+    asset_class: etf
+    sector: "ETF – Nasdaq-100"
+  - ticker: GOOGL
+    asset_class: equity
+    sector: "Technology – Search / Cloud"
+  - ticker: PLTR
+    asset_class: equity
+    sector: "Technology – AI Software"
+  - ticker: UNH
+    asset_class: equity
+    sector: "Healthcare – Managed Care"
+  - ticker: XOM
+    asset_class: equity
+    sector: "Energy – Integrated Oil & Gas"
+  - ticker: V
+    asset_class: equity
+    sector: "Financials – Payments"
+  - ticker: VUG
+    asset_class: etf
+    sector: "ETF – Large-Cap Growth"
+  - ticker: SCHD
+    asset_class: etf
+    sector: "ETF – Dividend / Income"
+  - ticker: ORCL
+    asset_class: equity
+    sector: "Technology – Cloud Database"
+  - ticker: MU
+    asset_class: equity
+    sector: "Technology – Memory"
+  - ticker: TSM
+    asset_class: equity
+    sector: "Technology – Foundry"
+  - ticker: EOG
+    asset_class: equity
+    sector: "Energy – E&P"
+  - ticker: COST
+    asset_class: equity
+    sector: "Consumer Staples"
+  - ticker: DASH
+    asset_class: equity
+    sector: "Consumer Discretionary"
+  - ticker: NEE
+    asset_class: equity
+    sector: "Utilities – Renewables"
+  - ticker: ABBV
+    asset_class: equity
+    sector: "Healthcare – Biotech / Pharma"
+  - ticker: NFLX
+    asset_class: equity
+    sector: "Communication Services"
+  - ticker: CRWD
+    asset_class: equity
+    sector: "Technology – Cybersecurity"
+  - ticker: INTC
+    asset_class: equity
+    sector: "Technology – Semiconductors"
+  - ticker: "^GSPC"
+    asset_class: index
+    benchmark: true

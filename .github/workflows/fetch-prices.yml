@@ -1,0 +1,87 @@
+name: Fetch prices
+
+# ============================================================================
+# Schedule: every 30 minutes during US equity market hours, Monday-Friday.
+#
+# US market hours are 09:30 - 16:00 ET. UTC offsets vary with daylight saving:
+#   * EST (winter, UTC-5): market =  14:30-21:00 UTC
+#   * EDT (summer, UTC-4): market =  13:30-20:00 UTC
+#
+# We use a single union window of 13:00 - 21:00 UTC, Mon-Fri, every :00 and
+# :30. That gives roughly +/- 1 hour of overrun on each end (a few extra runs
+# pre-open and post-close), which is acceptable per the spec — the cost of
+# an extra cron tick is one HTTP call per ticker, well under Finnhub's free
+# 60 req/min ceiling.
+#
+# Cron field reference: minute hour day-of-month month day-of-week
+#   "0,30 13-21 * * 1-5"  -> minutes :00 and :30,
+#                            hours 13 through 21 inclusive (UTC),
+#                            any day-of-month, any month,
+#                            Monday through Friday.
+#
+# GitHub Actions cron is best-effort — runs may be delayed under heavy load
+# on the shared runner pool. Treat the snapshot timestamp in prices.json
+# (not the cron schedule) as the source of truth for freshness.
+# ============================================================================
+
+on:
+  schedule:
+    - cron: "0,30 13-21 * * 1-5"
+  workflow_dispatch: {}  # Manual "Run workflow" button in the Actions UI.
+
+# Cancel any in-flight run when a newer one starts. Avoids two jobs racing
+# to commit the same data/ files.
+concurrency:
+  group: fetch-prices
+  cancel-in-progress: true
+
+permissions:
+  contents: write  # Needed to push the refreshed data/ files back to the repo.
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Use a token with write scope so the post-fetch commit can push.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Full history not needed; shallow keeps checkout fast.
+          fetch-depth: 1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install fetch dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[fetch]"
+
+      - name: Fetch prices
+        env:
+          # Optional. The fetch script falls back to yfinance when unset.
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: |
+          python scripts/fetch_prices.py -v
+
+      - name: Commit refreshed snapshot
+        env:
+          # Use the bot identity rather than the repo owner.
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git add data/prices.json data/history.parquet
+          if git diff --cached --quiet; then
+            echo "No price changes to commit."
+            exit 0
+          fi
+          ts=$(date -u +"%Y-%m-%dT%H:%MZ")
+          git commit -m "[bot] price refresh ${ts}"
+          git push

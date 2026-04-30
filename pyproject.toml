@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wm-dashboard"
+version = "0.1.0"
+description = "Local Streamlit dashboard for the WM Growth Portfolio (IPS-aware)."
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.36",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "openpyxl>=3.1",
+    "pyyaml>=6.0",
+    "plotly>=5.22",
+    "yfinance>=0.2.40",
+    "pyarrow>=15.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "types-PyYAML>=6.0",
+]
+# Slim install for the GitHub Actions cron job — no Streamlit, no plotly.
+fetch = [
+    "requests>=2.32",
+    "pandas>=2.2",
+    "pyarrow>=15.0",
+    "pyyaml>=6.0",
+    "yfinance>=0.2.40",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# Editable .pth processing is unreliable with paths containing spaces under
+# the anaconda base; pytest manages sys.path itself.
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
