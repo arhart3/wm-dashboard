@@ -10,8 +10,9 @@ and is re-read on every full page load (Streamlit's rerun model).
 
 from __future__ import annotations
 
+import hmac
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -689,12 +690,185 @@ def page_ips() -> None:
 # ---------------------------------------------------------------------------
 
 
+SESSION_TTL_HOURS = 12
+LOCKOUT_AFTER_FAILURES = 5
+LOCKOUT_DURATION_MINUTES = 15
+MIN_PASSWORD_LENGTH = 12
+
+
+def _get_secret_password() -> str | None:
+    """Read the dashboard password from Streamlit secrets.
+
+    Returns ``None`` when no secret is configured (local-dev open-access mode).
+    Logs (to stdout, server-side only) a warning if the configured password is
+    weak; the warning is not surfaced to users.
+    """
+    try:
+        expected = st.secrets["app_password"]
+    except (FileNotFoundError, KeyError):
+        return None
+    if not expected:
+        return None
+    expected = str(expected)
+    if len(expected) < MIN_PASSWORD_LENGTH:
+        logging.warning(
+            "Configured app_password is %d chars (< %d recommended). Update via "
+            "Streamlit Cloud Settings -> Secrets.",
+            len(expected),
+            MIN_PASSWORD_LENGTH,
+        )
+    return expected
+
+
+def _is_locked_out() -> tuple[bool, int]:
+    """Return ``(locked, seconds_remaining)``. Per-session rate limit."""
+    locked_until = st.session_state.get("locked_until")
+    if not locked_until:
+        return False, 0
+    remaining = int((locked_until - datetime.now()).total_seconds())
+    if remaining <= 0:
+        st.session_state.pop("locked_until", None)
+        st.session_state["fail_count"] = 0
+        return False, 0
+    return True, remaining
+
+
+def _record_failure() -> None:
+    """Increment the failed-attempt counter and lock the session if at limit.
+
+    The lockout is per-browser-session; an attacker who opens a fresh tab can
+    reset their counter. Genuine brute-force protection requires a strong
+    password (>= 12 chars, mixed alphabet) — see the README. The lockout is a
+    speed bump, not a wall.
+    """
+    fails = int(st.session_state.get("fail_count", 0)) + 1
+    st.session_state["fail_count"] = fails
+    if fails >= LOCKOUT_AFTER_FAILURES:
+        st.session_state["locked_until"] = datetime.now() + timedelta(
+            minutes=LOCKOUT_DURATION_MINUTES
+        )
+        logging.warning(
+            "Auth: %d failed attempts in this session — locked out for %d minutes.",
+            fails,
+            LOCKOUT_DURATION_MINUTES,
+        )
+    else:
+        logging.warning("Auth: failed login attempt (%d/%d).", fails, LOCKOUT_AFTER_FAILURES)
+
+
+def _session_expired() -> bool:
+    """Force re-auth after SESSION_TTL_HOURS even if the tab stays open."""
+    authed_at = st.session_state.get("authed_at")
+    if not authed_at:
+        return False
+    return (datetime.now() - authed_at).total_seconds() > SESSION_TTL_HOURS * 3600
+
+
+def _check_password() -> bool:
+    """Auth gate. Returns True only if the user is authenticated.
+
+    Security posture:
+    - Constant-time password comparison (``hmac.compare_digest``).
+    - Per-session rate limit: ``LOCKOUT_AFTER_FAILURES`` failed attempts in
+      the same browser session triggers a ``LOCKOUT_DURATION_MINUTES`` lockout.
+    - Session TTL: a successful login is good for ``SESSION_TTL_HOURS``; after
+      that the user must re-enter the password even if the tab is still open.
+    - Generic error messaging: wrong-password and locked-out states never
+      reveal whether a password is set or not.
+    - The configured password is stored in Streamlit Cloud's encrypted secrets
+      store; it never enters the public repo.
+    - All transport is HTTPS (Streamlit Cloud terminates TLS).
+
+    Limits to be honest about:
+    - This is a single shared password — there are no individual user accounts.
+    - Streamlit Cloud staff can technically read your secrets store. For higher
+      assurance, run on a private deploy (Streamlit for Teams, self-host, or
+      put a Cloudflare Access proxy in front of the public URL).
+    - The session lockout is per-browser-session; a determined attacker can
+      reset by opening a fresh tab. Choose a long, high-entropy password.
+    """
+    expected = _get_secret_password()
+    if expected is None:
+        return True
+
+    if st.session_state.get("authed") and not _session_expired():
+        return True
+    if _session_expired():
+        st.session_state.pop("authed", None)
+        st.session_state.pop("authed_at", None)
+
+    locked, remaining = _is_locked_out()
+
+    st.markdown(style.CSS, unsafe_allow_html=True)
+    st.markdown(
+        "<div style='max-width:420px;margin:6vh auto 0 auto'>"
+        "<h1 style='margin-bottom:0.25rem'>WM Growth Portfolio</h1>"
+        "<div class='tag-sourced' style='margin-bottom:1.5rem'>"
+        "Restricted access. Enter the dashboard password to continue."
+        "</div></div>",
+        unsafe_allow_html=True,
+    )
+
+    if locked:
+        mins = remaining // 60
+        secs = remaining % 60
+        st.markdown(
+            "<div style='max-width:420px;margin:0 auto'>"
+            f"<div class='card card-breach'>{style.status_pill('BREACH')} "
+            f"Too many failed attempts. Try again in {mins}m {secs:02d}s."
+            "</div></div>",
+            unsafe_allow_html=True,
+        )
+        st.stop()
+        return False
+
+    with st.form("login_form", clear_on_submit=True):
+        pw = st.text_input(
+            "Password",
+            type="password",
+            label_visibility="collapsed",
+            placeholder="Password",
+        )
+        submitted = st.form_submit_button("Sign in")
+    if submitted:
+        if hmac.compare_digest((pw or "").strip(), expected):
+            st.session_state["authed"] = True
+            st.session_state["authed_at"] = datetime.now()
+            st.session_state["fail_count"] = 0
+            st.rerun()
+        else:
+            _record_failure()
+            st.markdown(
+                "<div style='max-width:420px;margin:0 auto'>"
+                f"<div class='card card-breach'>{style.status_pill('BREACH')} "
+                "Incorrect password."
+                "</div></div>",
+                unsafe_allow_html=True,
+            )
+    st.stop()
+    return False  # unreachable, kept for mypy
+
+
+def _render_signout_in_sidebar() -> None:
+    if st.session_state.get("authed"):
+        with st.sidebar:
+            st.markdown(
+                "<div class='tag-sourced' style='margin-top:1rem'>Authenticated</div>",
+                unsafe_allow_html=True,
+            )
+            if st.button("Sign out", width="stretch"):
+                st.session_state.pop("authed", None)
+                st.rerun()
+
+
 def main() -> None:
     st.set_page_config(
         page_title="WM Growth Portfolio",
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    if not _check_password():
+        return
     _inject_css()
 
     pages = [
@@ -706,6 +880,7 @@ def main() -> None:
     ]
     nav = st.navigation(pages, position="sidebar")
     nav.run()
+    _render_signout_in_sidebar()
 
 
 main()

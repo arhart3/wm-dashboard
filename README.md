@@ -108,8 +108,50 @@ wm-dashboard/
   data/                           # repo == database
     prices.json                   # cron-refreshed snapshot (committed)
     history.parquet               # append-only log (committed)
+    reports/                      # synced .docx reports (committed)
     cache/                        # local parquet cache (gitignored)
 ```
+
+## Auth on the hosted deployment
+
+The hosted dashboard is gated by a single shared password configured via
+Streamlit Cloud's encrypted secrets store. Local runs (no secret set) skip
+auth entirely so development stays friction-free.
+
+**To enable / change the password:**
+
+1. Open https://share.streamlit.io and click your deployed app.
+2. **Settings → Secrets** (left rail).
+3. Paste this and click **Save**:
+
+   ```toml
+   app_password = "choose-a-long-passphrase-here"
+   ```
+
+   Use a passphrase of at least 12 characters with mixed case + numbers.
+   Streamlit Cloud encrypts the secret at rest and only injects it into the
+   running process; it never enters the public repo.
+
+4. The app rebuilds automatically (~30 s). Visit the URL — you'll see the
+   login screen. Old sessions stay signed in for 12 hours.
+
+**Security notes (be honest about what this protects against):**
+
+- ✅ Constant-time password comparison (`hmac.compare_digest`).
+- ✅ Per-session rate limit: 5 failed attempts triggers a 15-minute lockout.
+- ✅ Session TTL: a successful login is valid for 12 hours, then re-auth.
+- ✅ All transport HTTPS (Streamlit Cloud terminates TLS).
+- ⚠️ Single shared password — no individual user accounts.
+- ⚠️ Streamlit Cloud staff can technically read the secrets store.
+- ⚠️ Lockout is per-browser-session — a determined attacker can reset by
+  opening a new tab. Choose a high-entropy password.
+- ⚠️ The repo content is still public on GitHub. Auth only gates the
+  *interactive dashboard*; anyone can clone the repo and read the code,
+  config, and committed data. If that's a problem, move to a private
+  repo + Streamlit for Teams, or self-host behind Cloudflare Access.
+
+To remove auth (open the dashboard to anyone), delete the `app_password`
+secret in Streamlit Cloud Settings → Secrets and save.
 
 ## Hosted, always-fresh prices
 
