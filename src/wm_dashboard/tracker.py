@@ -230,9 +230,18 @@ def load_portfolio(
     ws = wb[HOLDINGS_SHEET]
 
     rows = list(ws.iter_rows(values_only=True))
-    if len(rows) < HEADER_ROW:
-        raise ValueError(f"Sheet has only {len(rows)} rows; expected header at row {HEADER_ROW}")
-    header = rows[HEADER_ROW - 1]
+    # Auto-detect the header row: scan the first 20 rows for one whose cells
+    # spell out "Ticker". Falls back to HEADER_ROW for backward compat.
+    header_idx = None
+    for i, row in enumerate(rows[:20]):
+        if any(_normalize_header(c) == "ticker" for c in row):
+            header_idx = i
+            break
+    if header_idx is None:
+        if len(rows) < HEADER_ROW:
+            raise ValueError(f"Sheet has only {len(rows)} rows; expected header at row {HEADER_ROW}")
+        header_idx = HEADER_ROW - 1
+    header = rows[header_idx]
     cols = _build_column_index(header)
     if "ticker" not in cols or "current_weight" not in cols:
         raise ValueError(
@@ -243,7 +252,7 @@ def load_portfolio(
 
     positions: list[Position] = []
     cash_pct = 0.0
-    for row in rows[HEADER_ROW:]:
+    for row in rows[header_idx + 1:]:
         ticker_raw = row[cols["ticker"]]
         if ticker_raw is None:
             continue
