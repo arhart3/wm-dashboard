@@ -71,8 +71,19 @@ TS=$(date -u +"%Y-%m-%dT%H:%MZ")
 echo "==> Committing: publish ${SUMMARY} (${TS})"
 git commit -m "publish: ${SUMMARY} (${TS})" >/dev/null
 
-echo "==> Pushing to origin/main"
-git push origin main 2>&1 | tail -3
+echo "==> Pushing to origin/main (race-resilient: rebase-and-retry up to 3x)"
+for attempt in 1 2 3; do
+  if git push origin main 2>&1 | tail -3; then
+    echo "Push succeeded on attempt ${attempt}."
+    break
+  fi
+  if [[ $attempt -eq 3 ]]; then
+    echo "Push failed after 3 attempts." >&2
+    exit 1
+  fi
+  echo "Push rejected; pulling and rebasing (attempt ${attempt})."
+  git pull --rebase origin main
+done
 
 echo
 echo "Done. Streamlit Cloud will rebuild in ~30s."
