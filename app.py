@@ -146,6 +146,136 @@ def _format_pct(x: float | None, places: int = 2, signed: bool = False) -> str:
     return fmt.format(x)
 
 
+_OPERATOR_PHRASE = {
+    "<=": "closes at or below",
+    "<":  "closes below",
+    ">=": "closes at or above",
+    ">":  "closes above",
+}
+
+_CONFIDENCE_LABEL = {"HIGH": "High", "MED": "Medium", "LOW": "Low"}
+
+_TRIGGER_STATUS_PRESENTATION = {
+    "ARMED":     ("Active",        "info"),   # indigo soft-fill
+    "FIRED":     ("Triggered",     "pos"),    # emerald — rule satisfied
+    "EXPIRED":   ("Manual review", "warn"),
+    "CANCELLED": ("Manual review", "warn"),
+}
+
+
+def _trigger_rule_sentence(t: dict) -> str:
+    """Plain-English summary of a trigger rule.
+
+    Falls back to the raw description for manual triggers (where the rule
+    isn't machine-evaluable, e.g. WTI commodity prices not in our snapshot).
+    """
+    if t.get("manual"):
+        return f"Manual review: {t.get('description', '')}"
+    op = t.get("operator")
+    val = t.get("value")
+    ticker = str(t.get("ticker") or "?").upper()
+    if not op or val is None:
+        return t.get("description", "") or ""
+    phrase = _OPERATOR_PHRASE.get(op, op)
+    closes = int(t.get("sustained_closes") or 1)
+    plural = "s" if closes != 1 else ""
+    return f"{ticker} {phrase} ${val} for {closes} consecutive close{plural}"
+
+
+def _humanize_iso_date(raw: object) -> str:
+    """Render a date / ISO-8601 string as 'May 15, 2026'."""
+    from datetime import date as _date
+    from datetime import datetime as _datetime
+    if isinstance(raw, _date):
+        return raw.strftime("%B %-d, %Y")
+    if isinstance(raw, str):
+        for parser in (_date.fromisoformat, lambda s: _datetime.fromisoformat(s).date()):
+            try:
+                return parser(raw).strftime("%B %-d, %Y")
+            except ValueError:
+                continue
+        return raw
+    return "—"
+
+
+def _render_trigger_card(t: dict, quotes: dict) -> str:
+    """Card-list view of a single armed trigger.
+
+    Header: ticker + Active / Triggered / Manual-review pill.
+    Body: rule sentence + action + a 4-up grid (last / distance / conf / review by).
+    Distance < 5% from the threshold is colored red to flag imminent fires.
+    """
+    from datetime import date as _date
+    ticker = str(t.get("ticker") or "?").upper()
+    status = str(t.get("status") or "ARMED").upper()
+    label, pill_class = _TRIGGER_STATUS_PRESENTATION.get(status, ("Manual review", "warn"))
+
+    op = t.get("operator")
+    val = t.get("value")
+    manual = bool(t.get("manual"))
+    last: float | None = None
+    distance_pct: float | None = None
+    if not manual and op and val is not None and ticker in quotes:
+        q = quotes.get(ticker)
+        last = q.price if q else None
+        if last is not None and float(val):
+            distance_pct = (last - float(val)) / float(val) * 100.0
+
+    last_html = f"${last:,.2f}" if last is not None else "—"
+    if distance_pct is not None:
+        near = abs(distance_pct) < 5.0
+        sign = "+" if distance_pct >= 0 else ""
+        distance_cls = "neg" if near else "muted"
+        distance_html = f"<span class='{distance_cls}'>{sign}{distance_pct:.2f}%</span>"
+    else:
+        distance_html = "<span class='muted'>—</span>"
+    conf = _CONFIDENCE_LABEL.get(str(t.get("confidence") or "").upper(), str(t.get("confidence") or "—"))
+    review_by_raw = t.get("review_by") or t.get("expires")
+    review_by_human = _humanize_iso_date(review_by_raw)
+
+    # Past-due flag — shown as a small warn pill next to the status.
+    today = _date.today()
+    stale = False
+    if isinstance(review_by_raw, _date):
+        stale = review_by_raw < today
+    elif isinstance(review_by_raw, str):
+        try:
+            stale = _date.fromisoformat(review_by_raw) < today
+        except ValueError:
+            pass
+    stale_tag = " <span class='pill warn' style='margin-left:6px'>past due</span>" if stale else ""
+
+    rule_sentence = _trigger_rule_sentence(t)
+    action = t.get("action", "") or t.get("description", "")
+
+    grid_cells = [
+        ("Last price",          last_html),
+        ("Distance to trigger", distance_html),
+        ("Confidence",          conf),
+        ("Review by",           review_by_human),
+    ]
+    grid_html = "".join(
+        f"<div><div class='muted' style='font-size:11px;text-transform:uppercase;"
+        f"letter-spacing:0.06em'>{label}</div>"
+        f"<div class='num' style='font-size:0.95rem;font-weight:600'>{value}</div></div>"
+        for label, value in grid_cells
+    )
+
+    return (
+        "<article style='border:1px solid var(--rule);border-radius:8px;"
+        "padding:14px 16px;margin-bottom:12px;background:var(--paper)'>"
+        "<header style='display:flex;justify-content:space-between;align-items:center'>"
+        f"<h3 style='margin:0;font-size:15px;text-transform:none;letter-spacing:0;color:var(--text)'>"
+        f"<strong>{ticker}</strong>{_ticker_links_html(ticker)}</h3>"
+        f"<span class='pill {pill_class}'>{label}{stale_tag}</span>"
+        "</header>"
+        f"<p style='margin:10px 0 4px 0;font-size:0.92rem'><strong>Rule.</strong> {rule_sentence}.</p>"
+        f"<p style='margin:0 0 10px 0;font-size:0.92rem'><strong>Action if triggered.</strong> {action}.</p>"
+        f"<div style='display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px'>{grid_html}</div>"
+        "</article>"
+    )
+
+
 def _ticker_links_html(ticker: str) -> str:
     """Inline external-research links rendered under each ticker symbol.
 
@@ -452,81 +582,11 @@ def page_dashboard() -> None:
         _render_ips_panel(breaches)
     with right:
         st.markdown("### Armed Triggers")
-        from datetime import date as _date
-
         active = [t for t in triggers if t.get("status", "ARMED") == "ARMED"]
         if not active:
             st.markdown("_No armed triggers in `config/triggers.yaml`._")
-        today = _date.today()
-        rows: list[str] = []
         for t in active:
-            ticker = str(t.get("ticker") or "?").upper()
-            description = t.get("description", "")
-            confidence = t.get("confidence", "—")
-            review_by_raw = t.get("review_by")
-            review_by = (
-                review_by_raw.isoformat() if isinstance(review_by_raw, _date)
-                else (review_by_raw or "—")
-            )
-            stale = False
-            if isinstance(review_by_raw, _date):
-                stale = review_by_raw < today
-            elif isinstance(review_by_raw, str):
-                try:
-                    stale = _date.fromisoformat(review_by_raw).__lt__(today)
-                except ValueError:
-                    pass
-
-            # Distance-from-threshold (only for machine-evaluable triggers)
-            op = t.get("operator")
-            val = t.get("value")
-            manual = bool(t.get("manual"))
-            last = None
-            distance_pct: float | None = None
-            if not manual and op and val is not None and ticker in quotes:
-                q = quotes.get(ticker)
-                last = q.price if q else None
-                if last is not None and val:
-                    distance_pct = (last - float(val)) / float(val) * 100
-
-            # Render
-            distance_html = "—"
-            distance_cls = ""
-            if distance_pct is not None:
-                near = abs(distance_pct) < 5.0
-                distance_cls = "neg" if near else "muted"
-                distance_html = f"{distance_pct:+.2f}%"
-            elif manual:
-                distance_html = "<span class='muted'>manual</span>"
-
-            last_html = f"{last:,.2f}" if last is not None else "—"
-            rule_html = (
-                f"<span class='num'>{op} {val}</span>" if (op and val is not None)
-                else "<span class='muted'>—</span>"
-            )
-            stale_tag = " <span class='tag-stale'>past due</span>" if stale else ""
-
-            rows.append(
-                f"<tr>"
-                f"<td><strong>{ticker}</strong>{stale_tag}{_ticker_links_html(ticker)}</td>"
-                f"<td>{rule_html}</td>"
-                f"<td class='num'>{last_html}</td>"
-                f"<td class='num {distance_cls}'>{distance_html}</td>"
-                f"<td class='muted' style='font-size:0.78rem'>{confidence} · by {review_by}</td>"
-                f"</tr>"
-                f"<tr><td colspan='5' class='muted' style='font-size:0.80rem;border-bottom:1px solid var(--rule);padding-bottom:8px'>"
-                f"{description}"
-                f"</td></tr>"
-            )
-        if rows:
-            st.markdown(
-                "<table style='font-size:0.86rem'>"
-                "<thead><tr>"
-                "<th>Ticker</th><th>Rule</th><th>Last</th><th>Distance</th><th>Conf · Review</th>"
-                "</tr></thead>"
-                f"<tbody>{''.join(rows)}</tbody></table>",
-                unsafe_allow_html=True,
-            )
+            st.markdown(_render_trigger_card(t, quotes), unsafe_allow_html=True)
 
 
 _AGG_PREFIXES = ("Sector cap", "Cash band", "Tracking", "Beta", "Max drawdown", "Annualized", "Leverage")
