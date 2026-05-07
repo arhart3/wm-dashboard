@@ -33,6 +33,7 @@ from wm_dashboard.reports_index import list_reports
 from wm_dashboard.tracker import Portfolio, load_portfolio
 from wm_dashboard.twr import compute_curves, portfolio_returns, snapshot
 from wm_dashboard.whatif import Trade, simulate_trade
+from wm_dashboard.yahoo_search import search as yahoo_search
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -850,13 +851,52 @@ def page_whatif() -> None:
         unsafe_allow_html=True,
     )
 
+    # Yahoo-Finance ticker search lives OUTSIDE the form so result clicks
+    # can update session state mid-render. The What-If form below
+    # consumes whatever the search wrote.
+    with st.expander("Search Yahoo Finance for a new ticker", expanded=False):
+        sc1, sc2 = st.columns([3, 1])
+        with sc1:
+            query = st.text_input(
+                "Company name or partial symbol",
+                key="wf_search_query",
+                placeholder="e.g. spotify, crowdstrike, vti",
+                label_visibility="collapsed",
+            )
+        with sc2:
+            do_search = st.button("Search", width="stretch", key="wf_search_btn")
+        if do_search and query.strip():
+            st.session_state["wf_search_results"] = yahoo_search(query.strip())
+        results: list = st.session_state.get("wf_search_results") or []
+        if results:
+            st.markdown(
+                f"<div class='tag-sourced'>{len(results)} match(es). Click one to "
+                f"populate the form below.</div>",
+                unsafe_allow_html=True,
+            )
+            for hit in results:
+                cols = st.columns([3, 1])
+                cols[0].markdown(
+                    f"<div><strong>{hit.symbol}</strong>  —  {hit.name}"
+                    f"<div class='muted' style='font-size:11px'>"
+                    f"{hit.exchange} · {hit.type}</div></div>",
+                    unsafe_allow_html=True,
+                )
+                if cols[1].button("Use", key=f"wf_use_{hit.symbol}"):
+                    st.session_state["wf_new_ticker"] = hit.symbol
+                    st.session_state["wf_new_is_etf"] = hit.type.upper() == "ETF"
+                    st.session_state["wf_search_results"] = None  # collapse list
+                    st.rerun()
+
     tickers = sorted({p.ticker for p in portfolio.positions if not p.is_cash})
+    # Default to "(new ticker)" if a search result was just populated.
     options = tickers + ["(new ticker)"]
+    default_idx = len(options) - 1 if st.session_state.get("wf_new_ticker") else 0
 
     with st.form("whatif_form"):
         c1, c2, c3 = st.columns([2, 1, 1])
         with c1:
-            choice = st.selectbox("Ticker", options=options, index=0)
+            choice = st.selectbox("Ticker", options=options, index=default_idx)
         with c2:
             action = st.selectbox("Action", options=["BUY", "SELL"])
         with c3:
@@ -868,11 +908,17 @@ def page_whatif() -> None:
         if choice == "(new ticker)":
             n1, n2, n3 = st.columns([1, 2, 1])
             with n1:
-                new_ticker = st.text_input("New ticker").upper().strip()
+                new_ticker = st.text_input(
+                    "New ticker",
+                    value=st.session_state.get("wf_new_ticker", ""),
+                ).upper().strip()
             with n2:
                 new_sector = st.text_input("Sector (required for new tickers)")
             with n3:
-                is_etf = st.checkbox("ETF (5% cap)")
+                is_etf = st.checkbox(
+                    "ETF (5% cap)",
+                    value=bool(st.session_state.get("wf_new_is_etf", False)),
+                )
 
         pre_mortem = st.text_area(
             "Pre-mortem (required, min 20 chars) — 'wrong if ___'",
