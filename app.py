@@ -1055,58 +1055,81 @@ def page_reports() -> None:
         )
 
 
+def _forecast_pct(x: float) -> str:
+    """Signed percentage formatter for forecast returns. ``0.05`` -> ``+5.00%``."""
+    sign = "+" if x >= 0 else ""
+    return f"{sign}{x * 100:.2f}%"
+
+
 def _render_forecast_card(result: ForecastResult) -> str:
-    """Pretty-print a ForecastResult as institutional-card HTML."""
-    action_pill_class = {
-        "BUY":  "pos",
-        "HOLD": "info",
-        "TRIM": "warn",
-    }.get(result.action, "info")
-    confidence_pill_class = {
-        "High":   "pos",
-        "Medium": "info",
-        "Low":    "warn",
-    }.get(result.confidence, "info")
+    """Render a ForecastResult per the institutional card spec.
 
-    catalysts_html = "".join(
-        f"<li style='margin-bottom:4px'>{c}</li>" for c in result.catalysts
-    )
+    Tone mapping:  BUY -> pos (emerald),  HOLD -> warn (amber),  TRIM -> neg (red).
+    Single combined pill (e.g. ``BUY · High confidence``).
+    Footer line: ``Generated <local-time>. <disclaimer>`` plus a small
+    technical line with the model + token usage.
+    """
+    tone = {"BUY": "pos", "TRIM": "neg"}.get(result.action, "warn")  # HOLD -> warn
+    pill_text = f"{result.action} &middot; {result.confidence} confidence"
 
-    def _fmt_ret(x: float) -> str:
-        cls = "pos" if x >= 0 else "neg"
-        sign = "+" if x >= 0 else ""
-        return f"<span class='num {cls}' style='font-size:1.15rem;font-weight:600'>{sign}{x * 100:.2f}%</span>"
+    catalysts_html = "".join(f"<li>{c}</li>" for c in result.catalysts)
+
+    # Localize the asof timestamp for display. The raw value is UTC ISO; the
+    # browser would handle locale formatting, but Streamlit renders this on
+    # the server, so we format to the user's portfolio timezone (ET) for
+    # consistency with the rest of the dashboard.
+    try:
+        from datetime import UTC
+        from datetime import datetime as _datetime
+        gen_utc = _datetime.strptime(result.asof_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+        asof_human = gen_utc.strftime("%Y-%m-%d %H:%M UTC")
+    except ValueError:
+        asof_human = result.asof_utc
+
+    def _stat(label: str, value: float) -> str:
+        return (
+            f"<div>"
+            f"  <div class='muted' style='font-size:11px;text-transform:uppercase;"
+            f"letter-spacing:0.06em'>{label}</div>"
+            f"  <div class='num' style='font-size:1.25rem;font-weight:600'>"
+            f"{_forecast_pct(value)}</div>"
+            f"</div>"
+        )
+
+    usage_line = ""
+    if result.raw_usage:
+        usage_line = (
+            f"<div class='muted' style='font-size:11px;margin-top:4px'>"
+            f"{result.model} &middot; "
+            f"{result.raw_usage.get('input_tokens', 0)} in / "
+            f"{result.raw_usage.get('output_tokens', 0)} out tokens"
+            f"</div>"
+        )
 
     return (
-        f"<article style='border:1px solid var(--rule);border-radius:8px;"
-        f"padding:16px 20px;margin-bottom:12px;background:var(--paper)'>"
-        f"<header style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px'>"
-        f"<h3 style='margin:0;font-size:18px;text-transform:none;letter-spacing:0;color:var(--text)'>"
-        f"<strong>{result.ticker}</strong> &mdash; one-week forward view</h3>"
-        f"<div>"
-        f"<span class='pill {action_pill_class}'>{result.action}</span>"
-        f"&nbsp;"
-        f"<span class='pill {confidence_pill_class}'>{result.confidence} confidence</span>"
-        f"</div></header>"
-        f"<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px'>"
-        f"  <div><div class='muted' style='font-size:11px;text-transform:uppercase;letter-spacing:0.06em'>5th pct (low)</div>{_fmt_ret(result.low)}</div>"
-        f"  <div><div class='muted' style='font-size:11px;text-transform:uppercase;letter-spacing:0.06em'>Median (base)</div>{_fmt_ret(result.base)}</div>"
-        f"  <div><div class='muted' style='font-size:11px;text-transform:uppercase;letter-spacing:0.06em'>95th pct (high)</div>{_fmt_ret(result.high)}</div>"
+        f"<section style='border:1px solid var(--rule);border-radius:8px;"
+        f"padding:16px;margin-top:16px;background:var(--paper)'>"
+        f"<header style='display:flex;justify-content:space-between;align-items:center'>"
+        f"<h3 style='margin:0;font-size:16px;text-transform:none;letter-spacing:0;"
+        f"color:var(--text)'>"
+        f"{result.ticker} &mdash; one-week forecast</h3>"
+        f"<span class='pill {tone}'>{pill_text}</span>"
+        f"</header>"
+        f"<div style='display:grid;grid-template-columns:repeat(3,1fr);"
+        f"gap:12px;margin-top:12px'>"
+        f"{_stat('Low scenario', result.low)}"
+        f"{_stat('Base scenario', result.base)}"
+        f"{_stat('High scenario', result.high)}"
         f"</div>"
-        f"<div style='margin-bottom:12px'>"
-        f"  <div class='muted' style='font-size:11px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px'>Catalysts</div>"
-        f"  <ol style='margin:0;padding-left:20px'>{catalysts_html}</ol>"
-        f"</div>"
-        f"<div style='margin-bottom:8px'>"
-        f"  <div class='muted' style='font-size:11px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px'>Pre-mortem</div>"
-        f"  <div style='font-style:italic'>{result.premortem}</div>"
-        f"</div>"
-        f"<div class='tag-sourced' style='margin-top:12px;border-top:1px solid var(--rule);padding-top:8px'>"
-        f"  Generated {result.asof_utc} via {result.model} &middot; "
-        f"  {result.raw_usage.get('input_tokens', 0)} in / {result.raw_usage.get('output_tokens', 0)} out tokens"
-        f"</div>"
-        f"<div class='tag-sourced' style='margin-top:6px;color:var(--warn)'>{result.disclaimer}</div>"
-        f"</article>"
+        f"<h4 style='margin-top:16px;margin-bottom:6px;font-size:13px;"
+        f"text-transform:none;letter-spacing:0'>Top catalysts</h4>"
+        f"<ol style='margin:0 0 12px 0;padding-left:20px'>{catalysts_html}</ol>"
+        f"<p style='margin:8px 0'><strong>Pre-mortem.</strong> {result.premortem}</p>"
+        f"<p class='muted' style='font-size:11px;margin-top:12px;margin-bottom:0'>"
+        f"Generated {asof_human}. {result.disclaimer}"
+        f"</p>"
+        f"{usage_line}"
+        f"</section>"
     )
 
 
