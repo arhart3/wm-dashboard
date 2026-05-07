@@ -300,20 +300,30 @@ tbody tr:last-child td {{ border-bottom: 1px solid var(--ink); }}
     background: var(--paper) !important; color: var(--ink) !important;
     border: 1px solid var(--rule) !important; border-radius: 2px !important;
 }}
+/* Primary buttons (default treatment).
+   IMPORTANT: Streamlit wraps the button label in a <p> inside a div, and our
+   global `h1,h2,h3,p,span,...{color:var(--ink)}` rule would otherwise repaint
+   the label dark, making the text invisible against the dark background.
+   We force the text color on every descendant of the button. */
 .stButton button, .stFormSubmitButton button, .stDownloadButton button, .stLinkButton a {{
     background: var(--ink) !important; color: var(--paper) !important;
     border: 1px solid var(--ink) !important; border-radius: 2px !important;
     font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.78rem;
 }}
+.stButton button *, .stFormSubmitButton button *, .stDownloadButton button *, .stLinkButton a * {{
+    color: var(--paper) !important;
+}}
 .stButton button:hover, .stFormSubmitButton button:hover, .stLinkButton a:hover {{
     background: var(--paper) !important; color: var(--ink) !important;
 }}
+.stButton button:hover *, .stFormSubmitButton button:hover *, .stLinkButton a:hover * {{
+    color: var(--ink) !important;
+}}
 
 /* Sidebar buttons — softer tertiary style for sign-out and any future
-   sidebar actions. Higher specificity wins over the dark global button
-   rule above. Spec: transparent bg + thin rule border + slate text,
-   hover lifts to surface-1. Mirrors the .btn-signout snippet from the
-   design system. */
+   sidebar actions. Higher specificity wins over the dark primary rule
+   above. Spec: transparent bg + thin rule border + slate text, hover
+   lifts to surface-1. Same descendant-color override applies. */
 [data-testid="stSidebar"] .stButton button {{
     background: transparent !important;
     color: var(--text) !important;
@@ -330,10 +340,16 @@ tbody tr:last-child td {{ border-bottom: 1px solid var(--ink); }}
     justify-content: center !important;
     gap: 8px !important;
 }}
+[data-testid="stSidebar"] .stButton button * {{
+    color: var(--text) !important;
+}}
 [data-testid="stSidebar"] .stButton button:hover {{
     background: var(--surface-1) !important;
     color: var(--text) !important;
     border-color: var(--rule-strong) !important;
+}}
+[data-testid="stSidebar"] .stButton button:hover * {{
+    color: var(--text) !important;
 }}
 
 div[data-testid="stMetric"] {{
