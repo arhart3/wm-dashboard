@@ -600,9 +600,29 @@ def page_performance() -> None:
     snap = snapshot(port_rets, bench_rets)
     curves = compute_curves(port_rets, bench_rets)
 
+    # Per-series line styling — distinct slate/blue/teal hues so every
+    # series is identifiable without relying on dash patterns. Portfolio
+    # is heaviest; references are slightly thinner for visual hierarchy.
+    line_styles: dict[str, dict] = {
+        "Portfolio":         {"color": "#0f172a", "width": 2.25},  # slate-900
+        bench_cfg["label"]:  {"color": "#64748b", "width": 1.75},  # slate-500
+        "Nasdaq Composite":  {"color": "#1d4ed8", "width": 1.75},  # blue-700
+        "Nasdaq 100":        {"color": "#0d9488", "width": 1.75},  # teal-600
+    }
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=curves.index, y=curves["Portfolio"], name="Portfolio", mode="lines"))
-    fig.add_trace(go.Scatter(x=curves.index, y=curves["Benchmark"], name=bench_cfg["label"], mode="lines"))
+    fig.add_trace(
+        go.Scatter(
+            x=curves.index, y=curves["Portfolio"], name="Portfolio", mode="lines",
+            line=line_styles["Portfolio"],
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=curves.index, y=curves["Benchmark"], name=bench_cfg["label"], mode="lines",
+            line=line_styles.get(bench_cfg["label"], {"color": "#64748b", "width": 1.75}),
+        )
+    )
     # Overlay each reference index as its own normalized cumulative-growth line,
     # rebased to 1.0 at the chart start so they're directly comparable.
     for spec in reference_specs:
@@ -615,18 +635,41 @@ def page_performance() -> None:
         # Align to the same date range used in `curves` so the lines start
         # together; reindex on the curves index, forward-filling the gaps.
         ref_curve = (1.0 + rets).cumprod().reindex(curves.index, method="pad")
+        label = spec.get("label", rt)
         fig.add_trace(
             go.Scatter(
                 x=ref_curve.index,
                 y=ref_curve.values,
-                name=spec.get("label", rt),
+                name=label,
                 mode="lines",
-                line={"dash": "dot"},  # dotted to distinguish from primary
+                line=line_styles.get(label, {"color": "#94a3b8", "width": 1.5}),
             )
         )
-    fig.update_layout(**style.grayscale_layout(title=f"Cumulative growth · {snap.n_observations} obs"))
-    style.style_lines(fig)
-    st.plotly_chart(fig, width="stretch")
+    layout = style.grayscale_layout(title=f"Cumulative growth · {snap.n_observations} obs")
+    # Override the default margin / legend / modebar with the spec layout.
+    layout["margin"] = {"l": 48, "r": 24, "t": 56, "b": 40}
+    layout["legend"] = {
+        "orientation": "h",
+        "y": 1.12,
+        "x": 0,
+        "xanchor": "left",
+        "font": {"color": style.SUBTLE, "size": 11},
+    }
+    layout["modebar"] = {"orientation": "v"}
+    fig.update_layout(**layout)
+    # Note: we *don't* call style.style_lines here — it would overwrite our
+    # per-series colors with the grayscale shade ramp.
+    st.plotly_chart(
+        fig,
+        width="stretch",
+        config={
+            "displaylogo": False,
+            "modeBarButtonsToRemove": [
+                "lasso2d", "select2d", "autoScale2d", "toggleSpikelines",
+            ],
+            "responsive": True,
+        },
+    )
 
     # Each metric: (label, formatted value, footer, severity).
     # Severity drives the colored left-border on the card. None = no badge.
