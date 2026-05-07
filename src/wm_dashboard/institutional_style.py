@@ -1,8 +1,11 @@
-"""Grayscale institutional style palette and Plotly helpers.
+"""Institutional style palette and Plotly helpers.
 
-Mirrors the report templates: Calibri prose, Consolas for numbers, single-rule
-tables with subtle alternating rows. The palette below is the source of truth
-for both the printed reports and the Streamlit dashboard.
+The palette is the single source of truth for both the printed reports
+and the Streamlit dashboard. Colors are slate-based with restrained
+indigo accents and Tailwind-inspired sentiment tokens (emerald-700 for
+positive, red-700 for negative, amber-700 for warnings, cyan-700 for
+informational). Prose is Inter; numerics stay tabular monospace
+(JetBrains Mono → Consolas → system fallback) to align decimal points.
 """
 
 from __future__ import annotations
@@ -11,30 +14,53 @@ from typing import Any
 
 import plotly.graph_objects as go
 
-INK = "#111111"
-SUBTLE = "#5A5A5A"
-RULE = "#CFCFCF"
-HEADER_BG = "#ECECEC"
-ALT_BG = "#F6F6F6"
-PAPER_BG = "#FFFFFF"
-ACCENT_REVIEW = "#9A6A00"
-ACCENT_BREACH = "#A23A2E"
-ACCENT_OK = "#2F6B3D"
+# Surfaces ------------------------------------------------------------------
+PAPER_BG = "#FFFFFF"           # bg
+SURFACE_1 = "#F8F9FA"          # subtle alt-row + low-emphasis surfaces
+SURFACE_2 = "#EEF1F4"          # table headers, deeper emphasis surfaces
+RULE = "#E5E7EB"               # default border / hairline
+RULE_STRONG = "#CBD2DA"        # primary table top/bottom rules
+
+# Text ----------------------------------------------------------------------
+INK = "#0F172A"                # slate-900 — body
+SUBTLE = "#475569"             # slate-600 — secondary text + labels
+TEXT_MUTED = "#94A3B8"         # slate-400 — captions, low-emphasis hints
+
+# Accents -------------------------------------------------------------------
+ACCENT = "#1E3A8A"             # indigo-900 — used sparingly for emphasis
+ACCENT_SOFT = "#E0E7FF"
+
+# Sentiment (Tailwind-inspired) ---------------------------------------------
+ACCENT_OK = "#047857"           # emerald-700
+OK_SOFT = "#D1FAE5"
+ACCENT_BREACH = "#B91C1C"       # red-700
+BREACH_SOFT = "#FEE2E2"
+ACCENT_REVIEW = "#B45309"       # amber-700
+REVIEW_SOFT = "#FEF3C7"
+ACCENT_INFO = "#0E7490"         # cyan-700
+
+# Backwards-compat aliases (callers still reference these names)
+HEADER_BG = SURFACE_2
+ALT_BG = SURFACE_1
 
 PALETTE: dict[str, str] = {
     "ink": INK,
     "subtle": SUBTLE,
+    "muted": TEXT_MUTED,
     "rule": RULE,
-    "header_bg": HEADER_BG,
-    "alt_bg": ALT_BG,
+    "rule_strong": RULE_STRONG,
+    "header_bg": SURFACE_2,
+    "alt_bg": SURFACE_1,
     "paper": PAPER_BG,
+    "accent": ACCENT,
     "ok": ACCENT_OK,
     "review": ACCENT_REVIEW,
     "breach": ACCENT_BREACH,
+    "info": ACCENT_INFO,
 }
 
-PROSE_FONT = "Calibri, Helvetica, Arial, sans-serif"
-NUMERIC_FONT = "Consolas, 'SF Mono', Menlo, monospace"
+PROSE_FONT = "'Inter', 'Calibri', system-ui, -apple-system, 'Helvetica Neue', sans-serif"
+NUMERIC_FONT = "'JetBrains Mono', 'Consolas', 'SF Mono', Menlo, ui-monospace, monospace"
 
 
 def grayscale_layout(title: str | None = None, height: int = 360) -> dict[str, Any]:
@@ -87,15 +113,38 @@ def style_lines(fig: go.Figure) -> go.Figure:
 CSS = f"""
 <style>
 :root {{
-    --ink: {INK};
-    --subtle: {SUBTLE};
-    --rule: {RULE};
-    --header-bg: {HEADER_BG};
-    --alt-bg: {ALT_BG};
-    --paper: {PAPER_BG};
-    --ok: {ACCENT_OK};
-    --review: {ACCENT_REVIEW};
-    --breach: {ACCENT_BREACH};
+    /* Surfaces */
+    --bg:           {PAPER_BG};
+    --paper:        {PAPER_BG};
+    --surface-1:    {SURFACE_1};
+    --surface-2:    {SURFACE_2};
+    --header-bg:    {SURFACE_2};   /* alias for back-compat */
+    --alt-bg:       {SURFACE_1};   /* alias for back-compat */
+    --rule:         {RULE};
+    --rule-strong:  {RULE_STRONG};
+
+    /* Text */
+    --text:           {INK};
+    --ink:            {INK};       /* alias */
+    --text-secondary: {SUBTLE};
+    --subtle:         {SUBTLE};    /* alias */
+    --text-muted:     {TEXT_MUTED};
+
+    /* Accents */
+    --accent:        {ACCENT};
+    --accent-soft:   {ACCENT_SOFT};
+
+    /* Sentiment */
+    --pos:        {ACCENT_OK};
+    --pos-soft:   {OK_SOFT};
+    --ok:         {ACCENT_OK};      /* alias */
+    --neg:        {ACCENT_BREACH};
+    --neg-soft:   {BREACH_SOFT};
+    --breach:     {ACCENT_BREACH};  /* alias */
+    --warn:       {ACCENT_REVIEW};
+    --warn-soft:  {REVIEW_SOFT};
+    --review:     {ACCENT_REVIEW};  /* alias */
+    --info:       {ACCENT_INFO};
 }}
 
 /* Global reset — pin the institutional light palette regardless of the
@@ -150,10 +199,11 @@ div[data-testid="stMetricValue"], code, pre, .num {{
 /* Directional / sentiment colors — used in KPI deltas, position day %,
    trigger distance-from-threshold, etc. Subtle enough to read on white,
    distinct enough to scan at a glance. */
-.pos    {{ color: #0a5c2a !important; }}
-.neg    {{ color: #7a1f1f !important; }}
-.warn   {{ color: #8a6d00 !important; }}
-.muted  {{ color: var(--subtle) !important; }}
+.pos    {{ color: var(--pos) !important; }}
+.neg    {{ color: var(--neg) !important; }}
+.warn   {{ color: var(--warn) !important; }}
+.info   {{ color: var(--info) !important; }}
+.muted  {{ color: var(--text-muted) !important; }}
 
 /* KPI tiles + provenance badges (sourced / confirmed / calibrated) */
 .kpi-tile {{ min-height: 96px; }}
@@ -171,9 +221,9 @@ div[data-testid="stMetricValue"], code, pre, .num {{
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }}
-.badge.sourced    {{ background: #e8efe8; color: #0a5c2a; }}
-.badge.confirmed  {{ background: var(--header-bg); color: var(--subtle); }}
-.badge.calibrated {{ background: #f4ecd8; color: #8a6d00; }}
+.badge.sourced    {{ background: var(--pos-soft);  color: var(--pos); }}
+.badge.confirmed  {{ background: var(--surface-2); color: var(--text-secondary); }}
+.badge.calibrated {{ background: var(--warn-soft); color: var(--warn); }}
 
 /* Tables — single-rule, alternating rows, tight padding. */
 table {{ border-collapse: collapse; width: 100%; font-size: 0.86rem; }}
@@ -199,21 +249,23 @@ tbody tr:nth-child(even) td {{ background: var(--alt-bg) !important; }}
 tbody tr:last-child td {{ border-bottom: 1px solid var(--ink); }}
 .num {{ text-align: right; }}
 
-/* Pills — compact rectangles, not pills. */
+/* Pills — fully rounded, soft fills. Used for IPS severity (.pill-ok /
+   -review / -breach) and for general sentiment (.pill.pos / .neg / .warn
+   / .info, mirroring Tailwind tokens). */
 .pill {{
     display: inline-block;
-    padding: 1px 8px;
-    border-radius: 2px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    border: 1px solid transparent;
     vertical-align: middle;
 }}
-.pill-ok     {{ background: #ECF1ED; color: {ACCENT_OK}    !important; border-color: #C8D6CC; }}
-.pill-review {{ background: #F4EEDD; color: {ACCENT_REVIEW} !important; border-color: #D9C99A; }}
-.pill-breach {{ background: #F1DFDC; color: {ACCENT_BREACH} !important; border-color: #D9B6B0; }}
+.pill.pos,  .pill-ok     {{ background: var(--pos-soft);  color: var(--pos)  !important; }}
+.pill.warn, .pill-review {{ background: var(--warn-soft); color: var(--warn) !important; }}
+.pill.neg,  .pill-breach {{ background: var(--neg-soft);  color: var(--neg)  !important; }}
+.pill.info               {{ background: var(--accent-soft); color: var(--accent) !important; }}
 
 .tag-sourced {{ color: var(--subtle) !important; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }}
 .tag-cached  {{ color: var(--subtle) !important; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; opacity: 0.7; }}
