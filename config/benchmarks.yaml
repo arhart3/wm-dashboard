@@ -1,3 +1,18 @@
+# Benchmarks displayed alongside the portfolio in the dashboard header.
+# The first entry is the IPS-binding benchmark used for tracking error,
+# alpha, and beta calculations. The rest are reference-only.
+
+primary:
+  ticker: ^GSPC
+  label: "S&P 500 TR"
+
+reference:
+  - ticker: ^IXIC
+    label: "Nasdaq Composite"
+  - ticker: ^NDX
+    label: "Nasdaq 100"
+
+# Backward-compatible single-benchmark accessor for legacy callers.
 benchmark:
   ticker: ^GSPC
   label: "S&P 500 TR"

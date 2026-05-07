@@ -1,17 +1,68 @@
-# Active triggers — edit in place. Mirrors .memory/open_items.md but is the
-# operational source for the dashboard.
+# Active triggers — structured schema (v2).
+#
+# Each trigger is a machine-evaluable rule on a price field. The
+# `scripts/evaluate_triggers.py` runner walks ARMED triggers each cron
+# tick, compares the latest price (from data/prices.json) against `value`
+# using `operator`, and flips status to FIRED when the rule is satisfied
+# for `sustained_closes` consecutive snapshots.
+#
+# Schema:
+#   id:                unique stable identifier (used for history lookups)
+#   ticker:            symbol whose price drives the rule
+#   description:       human-readable summary (also shown in UI)
+#   field:             "close" | "intraday"   (currently only "close" supported)
+#   operator:          "<" | "<=" | ">" | ">="
+#   value:             numeric threshold
+#   sustained_closes:  number of consecutive closes that must satisfy
+#   action:            human-readable trade action (NOT auto-executed)
+#   confidence:        HIGH | MED | LOW
+#   expires:           YYYY-MM-DD; trigger auto-EXPIRES if still ARMED past this
+#   review_by:         YYYY-MM-DD; surface as PAST DUE in UI past this date
+#   status:            ARMED | FIRED | EXPIRED | CANCELLED
+#   manual:            true if rule is human-judgement (skip auto-evaluation)
+#
+# DO NOT auto-execute trades. The dashboard is a checker, not a broker;
+# `evaluate_triggers.py` only updates status. Humans decide what to do next.
+
 triggers:
-- ticker: LLY
-  description: Intraday trigger at $920. Add 4.0 -> 4.5% on sustained close below $920.
-  confidence: MED
-  review_by: 2026-05-15
-- ticker: XOM/EOG
-  description: 'Energy WTI $90 trigger. On sustained close < $90: trim XOM 2.5 -> 2.0%, EOG 2.0 -> 1.5%,
-    cash +1.0%.'
-  confidence: MED
-  review_by: 2026-05-15
-- ticker: PORTFOLIO
-  description: 'Drawdown trigger WTD >= -3%. Response: raise cash toward 20% ceiling, trim highest-beta
-    names first.'
-  confidence: HIGH
-  review_by: 2026-12-31
+  - id: LLY-add-2026-04
+    ticker: LLY
+    description: "Sustained close <= $920 -> add 4.0 -> 4.5%, fund from cash."
+    field: close
+    operator: "<="
+    value: 920
+    sustained_closes: 1
+    action: "ADD LLY 4.0% -> 4.5%, cash -0.5%"
+    confidence: MED
+    expires: 2026-06-30
+    review_by: 2026-05-15
+    status: ARMED
+    manual: false
+
+  - id: ENERGY-trim-WTI90
+    ticker: WTI
+    description: "Sustained WTI close < $90 -> trim XOM/EOG, raise cash 1.0%."
+    field: close
+    operator: "<"
+    value: 90
+    sustained_closes: 1
+    action: "TRIM XOM 2.5% -> 2.0%, EOG 2.0% -> 1.5%, cash +1.0%"
+    confidence: MED
+    expires: 2026-09-30
+    review_by: 2026-05-15
+    status: ARMED
+    manual: true   # WTI not tracked in prices.json; manually evaluated
+
+  - id: PORTFOLIO-drawdown
+    ticker: PORTFOLIO
+    description: "WTD drawdown >= -3% -> raise cash toward 20%, trim highest beta first."
+    field: close
+    operator: "<="
+    value: -3.0
+    sustained_closes: 1
+    action: "Raise cash toward 20% ceiling, trim highest-beta names first"
+    confidence: HIGH
+    expires: 2026-12-31
+    review_by: 2026-12-31
+    status: ARMED
+    manual: true   # composite portfolio metric; evaluated by hand

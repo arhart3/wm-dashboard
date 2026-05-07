@@ -91,6 +91,21 @@ def _load_benchmark() -> dict:
 
 
 @st.cache_data(ttl=900)
+def _load_benchmarks_all_cached(mtime: float) -> dict:
+    """Load multi-benchmark config: primary + reference list."""
+    with (CONFIG_DIR / "benchmarks.yaml").open() as fh:
+        raw = yaml.safe_load(fh) or {}
+    return {
+        "primary": raw.get("primary") or raw.get("benchmark") or {"ticker": "^GSPC", "label": "S&P 500 TR"},
+        "reference": raw.get("reference") or [],
+    }
+
+
+def _load_benchmarks_all() -> dict:
+    return _load_benchmarks_all_cached(_mtime(CONFIG_DIR / "benchmarks.yaml"))
+
+
+@st.cache_data(ttl=900)
 def _load_triggers_cached(mtime: float) -> list[dict]:
     with (CONFIG_DIR / "triggers.yaml").open() as fh:
         return (yaml.safe_load(fh) or {}).get("triggers", []) or []
@@ -176,61 +191,144 @@ def _source_badge(source: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _portfolio_day_change(portfolio: Portfolio, quotes: dict) -> float | None:
+    """Weighted average day-change of equity positions (cash excluded).
+
+    Returns ``None`` when no positions have a usable change_pct.
+    """
+    total_weight = 0.0
+    weighted_sum = 0.0
+    for pos in portfolio.positions:
+        if pos.is_cash:
+            continue
+        q = quotes.get(pos.ticker)
+        if not q or q.change_pct is None:
+            continue
+        total_weight += pos.current_weight_pct
+        weighted_sum += pos.current_weight_pct * q.change_pct
+    if total_weight == 0:
+        return None
+    return weighted_sum / total_weight
+
+
+def _kpi_tile(label: str, value: str, delta: float | None, footer: str = "") -> str:
+    """Render one KPI tile matching the institutional design language."""
+    if delta is None:
+        delta_html = "<div class='num' style='font-size:0.86rem;color:var(--subtle)'>—</div>"
+    else:
+        cls = "pos" if delta >= 0 else "neg"
+        sign = "+" if delta >= 0 else ""
+        delta_html = (
+            f"<div class='num kpi-delta {cls}' style='font-size:0.92rem;font-weight:600'>"
+            f"{sign}{delta:.2f}%</div>"
+        )
+    foot = f"<div class='tag-sourced' style='margin-top:2px'>{footer}</div>" if footer else ""
+    return (
+        f"<div class='card kpi-tile' style='margin:0;padding:10px 14px'>"
+        f"<div class='tag-sourced'>{label}</div>"
+        f"<div class='num' style='font-size:1.3rem;color:var(--ink);font-weight:600'>{value}</div>"
+        f"{delta_html}{foot}"
+        f"</div>"
+    )
+
+
 def page_dashboard() -> None:
     portfolio = _load_portfolio()
     ips = _load_ips()
-    bench_cfg = _load_benchmark()
+    benchmarks = _load_benchmarks_all()
     triggers = _load_triggers()
-    tickers = tuple(p.ticker for p in portfolio.equity_positions if p.ticker not in {"CASH"})
-    quotes = _load_quotes(tickers + (bench_cfg["ticker"],))
 
-    bench_quote = quotes.get(bench_cfg["ticker"])
+    bench_tickers = [benchmarks["primary"]["ticker"]] + [b["ticker"] for b in benchmarks["reference"]]
+    eq_tickers = tuple(p.ticker for p in portfolio.equity_positions if p.ticker not in {"CASH"})
+    quotes = _load_quotes(eq_tickers + tuple(bench_tickers))
 
     snapshot_meta = repo_snapshot_age()
     if snapshot_meta is not None:
-        gen, age = snapshot_meta
-        prices_age_str = f"prices {_humanize_age(age)} (snapshot {gen:%Y-%m-%d %H:%M} UTC)"
+        gen, _age = snapshot_meta
+        refreshed_iso = gen.replace(tzinfo=__import__("datetime").timezone.utc).isoformat()
     else:
-        prices_age_str = "prices: live yfinance fallback (no repo snapshot)"
+        refreshed_iso = ""
+
+    # ---- Header: title + live ET clock + last-refresh stamp ----
+    st.markdown(
+        "<h1>WM Growth Portfolio</h1>"
+        "<div id='wm-clocks' class='tag-sourced'>"
+        "Data refreshed: <span id='wm-asof' class='num'>"
+        + (gen.strftime("%Y-%m-%d %H:%M") + " UTC" if snapshot_meta else "—")
+        + "</span>"
+        "<span style='margin:0 10px;color:var(--rule)'>|</span>"
+        "Now: <span id='wm-now' class='num'>—</span> ET"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    # Inject the JS that ticks the ET clock once a second.
+    st.components.v1.html(
+        f"""
+        <script>
+        (function () {{
+          const fmt = new Intl.DateTimeFormat("en-US", {{
+            timeZone: "America/New_York", hour12: false,
+            year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit"
+          }});
+          function tick() {{
+            // Streamlit renders components inside iframes; reach up to parent
+            // document to find the clock span we just emitted.
+            const doc = window.parent ? window.parent.document : document;
+            const el = doc.getElementById("wm-now");
+            if (el) el.textContent = fmt.format(new Date());
+            const asof = doc.getElementById("wm-asof");
+            // Also format the snapshot time in ET if we have an ISO timestamp.
+            const iso = "{refreshed_iso}";
+            if (asof && iso) {{
+              asof.textContent = fmt.format(new Date(iso)) + " ET";
+            }}
+          }}
+          tick(); setInterval(tick, 1000);
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+    # ---- 4-up benchmark KPI strip: Portfolio + 3 indices ----
+    port_delta = _portfolio_day_change(portfolio, quotes)
+    weight_total = portfolio.total_weight_pct
+    weight_footer = (
+        "reconciles to 100%" if abs(weight_total - 100.0) < 0.01 else f"off by {weight_total - 100.0:+.2f}%"
+    )
+
+    tiles = [_kpi_tile(
+        "Portfolio (day)",
+        f"{port_delta:+.2f}%" if port_delta is not None else "—",
+        None,  # value already shows day-change
+        f"{len(portfolio.equity_positions)} positions · cash {portfolio.cash_pct:.1f}% · {weight_footer}",
+    )]
+    for spec in [benchmarks["primary"]] + benchmarks["reference"]:
+        q = quotes.get(spec["ticker"])
+        price = f"{q.price:,.2f}" if q and q.price else "—"
+        delta = q.change_pct if q else None
+        prov = q.source if q else "stale"
+        tiles.append(_kpi_tile(spec["label"], price, delta, prov.upper()))
 
     st.markdown(
-        f"<h1>WM Growth Portfolio</h1>"
-        f"<div class='tag-sourced'>Workbook {portfolio.asof:%Y-%m-%d %H:%M} · "
-        f"refreshed {datetime.now():%H:%M:%S} · {prices_age_str}</div>",
+        "<div style='display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0 6px 0'>"
+        + "".join(tiles)
+        + "</div>",
         unsafe_allow_html=True,
     )
 
-    bench_price = f"{bench_quote.price:,.2f}" if bench_quote and bench_quote.price else "—"
-    bench_chg = (
-        _format_pct(bench_quote.change_pct, signed=True) if bench_quote and bench_quote.change_pct is not None else "—"
-    )
-    bench_prov = bench_quote.provenance if bench_quote else "STALE"
-
-    weight_total = portfolio.total_weight_pct
-    weight_footer = (
-        "reconciles to 100%" if abs(weight_total - 100.0) < 0.01 else "off by " + f"{weight_total - 100.0:+.2f}%"
-    )
+    # ---- Compact secondary strip: IPS breach count ----
     breach_count = sum(1 for b in check_portfolio(portfolio, ips) if b.is_breach)
-    breach_footer = "all checks pass" if breach_count == 0 else "see panel below"
-
-    kpi_html = (
-        "<div style='display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0 18px 0'>"
-        + "".join(
-            f"<div class='card' style='margin:0;padding:10px 14px'>"
-            f"<div class='tag-sourced'>{label}</div>"
-            f"<div class='num' style='font-size:1.3rem;color:var(--ink)'>{value}</div>"
-            f"<div class='tag-sourced'>{footer}</div>"
-            f"</div>"
-            for label, value, footer in [
-                ("Positions", str(len(portfolio.equity_positions)), f"+ cash {portfolio.cash_pct:.1f}%"),
-                ("Total weight", f"{weight_total:.2f}%", weight_footer),
-                (bench_cfg["label"], bench_price, f"{bench_chg} · {bench_prov}"),
-                ("IPS breaches", str(breach_count), breach_footer),
-            ]
-        )
-        + "</div>"
+    breach_color = "var(--breach, #A23A2E)" if breach_count else "var(--ok, #2F6B3D)"
+    st.markdown(
+        f"<div class='tag-sourced' style='margin:0 0 18px 0'>"
+        f"IPS v{ips.version if hasattr(ips, 'version') else '1.1'} · "
+        f"<span style='color:{breach_color};font-weight:700'>{breach_count} breach{'es' if breach_count != 1 else ''}</span>"
+        f" — see IPS Status panel below"
+        f"</div>",
+        unsafe_allow_html=True,
     )
-    st.markdown(kpi_html, unsafe_allow_html=True)
 
     st.markdown("### Positions")
     rows = []
@@ -318,34 +416,80 @@ def page_dashboard() -> None:
         breaches = check_portfolio(portfolio, ips)
         _render_ips_panel(breaches)
     with right:
-        st.markdown("### Active Triggers")
-        if not triggers:
-            st.markdown("_No active triggers in `config/triggers.yaml`._")
+        st.markdown("### Armed Triggers")
         from datetime import date as _date
+
+        active = [t for t in triggers if t.get("status", "ARMED") == "ARMED"]
+        if not active:
+            st.markdown("_No armed triggers in `config/triggers.yaml`._")
         today = _date.today()
-        for t in triggers:
+        rows: list[str] = []
+        for t in active:
+            ticker = str(t.get("ticker") or "?").upper()
+            description = t.get("description", "")
+            confidence = t.get("confidence", "—")
             review_by_raw = t.get("review_by")
+            review_by = (
+                review_by_raw.isoformat() if isinstance(review_by_raw, _date)
+                else (review_by_raw or "—")
+            )
             stale = False
             if isinstance(review_by_raw, _date):
                 stale = review_by_raw < today
-                review_by = review_by_raw.isoformat()
             elif isinstance(review_by_raw, str):
                 try:
-                    stale = _date.fromisoformat(review_by_raw) < today
+                    stale = _date.fromisoformat(review_by_raw).__lt__(today)
                 except ValueError:
                     pass
-                review_by = review_by_raw
-            else:
-                review_by = "—"
+
+            # Distance-from-threshold (only for machine-evaluable triggers)
+            op = t.get("operator")
+            val = t.get("value")
+            manual = bool(t.get("manual"))
+            last = None
+            distance_pct: float | None = None
+            if not manual and op and val is not None and ticker in quotes:
+                q = quotes.get(ticker)
+                last = q.price if q else None
+                if last is not None and val:
+                    distance_pct = (last - float(val)) / float(val) * 100
+
+            # Render
+            distance_html = "—"
+            distance_cls = ""
+            if distance_pct is not None:
+                near = abs(distance_pct) < 5.0
+                distance_cls = "neg" if near else "muted"
+                distance_html = f"{distance_pct:+.2f}%"
+            elif manual:
+                distance_html = "<span class='muted'>manual</span>"
+
+            last_html = f"{last:,.2f}" if last is not None else "—"
+            rule_html = (
+                f"<span class='num'>{op} {val}</span>" if (op and val is not None)
+                else "<span class='muted'>—</span>"
+            )
             stale_tag = " <span class='tag-stale'>past due</span>" if stale else ""
-            card_cls = "card card-breach" if stale else "card card-review"
+
+            rows.append(
+                f"<tr>"
+                f"<td><strong>{ticker}</strong>{stale_tag}</td>"
+                f"<td>{rule_html}</td>"
+                f"<td class='num'>{last_html}</td>"
+                f"<td class='num {distance_cls}'>{distance_html}</td>"
+                f"<td class='muted' style='font-size:0.78rem'>{confidence} · by {review_by}</td>"
+                f"</tr>"
+                f"<tr><td colspan='5' class='muted' style='font-size:0.80rem;border-bottom:1px solid var(--rule);padding-bottom:8px'>"
+                f"{description}"
+                f"</td></tr>"
+            )
+        if rows:
             st.markdown(
-                f"<div class='{card_cls}'>"
-                f"<strong>{t.get('ticker', '?')}</strong> "
-                f"<span class='tag-sourced'>conf {t.get('confidence', '—')} · "
-                f"review by {review_by}</span>{stale_tag}<br>"
-                f"<span class='subtle' style='font-size:0.86rem'>{t.get('description', '')}</span>"
-                f"</div>",
+                "<table style='font-size:0.86rem'>"
+                "<thead><tr>"
+                "<th>Ticker</th><th>Rule</th><th>Last</th><th>Distance</th><th>Conf · Review</th>"
+                "</tr></thead>"
+                f"<tbody>{''.join(rows)}</tbody></table>",
                 unsafe_allow_html=True,
             )
 

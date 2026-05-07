@@ -96,3 +96,9 @@ tickers:
   - ticker: "^GSPC"
     asset_class: index
     benchmark: true
+  - ticker: "^IXIC"
+    asset_class: index
+    label: "Nasdaq Composite"
+  - ticker: "^NDX"
+    asset_class: index
+    label: "Nasdaq 100"

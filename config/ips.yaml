@@ -1,10 +1,13 @@
-# WM Growth Portfolio — IPS v1.0 hard constraints.
-# Source of truth: WM_Growth_Portfolio_IPS_v1.0.docx (effective 2026-04-21).
-# All percentages are stated in percentage points (e.g. 7.0 means 7.0%, NOT 0.07).
+# WM Growth Portfolio — IPS hard constraints.
+# Source of truth: WM_Growth_Portfolio_IPS_v1.1.docx (effective 2026-04-29).
+# All percentages are stated in percentage points (e.g. 10.0 means 10.0%, NOT 0.10).
 
-max_position_equity_pct: 7.0
-max_position_etf_pct: 5.0
-max_sector_pct: 35.0
+version: "1.1"
+effective_date: "2026-04-29"
+
+max_position_equity_pct: 10.0     # was 7.0 in v1.0 — "let winners run"
+max_position_etf_pct: 5.0         # unchanged
+max_sector_pct: 40.0              # was 35.0 in v1.0 — reflect Tech overweight
 cash_band_min_pct: 10.0
 cash_band_max_pct: 20.0
 rebalance_tolerance_pct: 0.5
@@ -14,8 +17,24 @@ beta_max: 1.25
 max_drawdown_pct: -15.0
 max_volatility_pct: 22.0
 no_leverage: true
+no_options: true
+no_shorts: true
 
 # Severity rules: distance from a hard limit at which we escalate to BREACH vs.
 # REVIEW. Within `review_buffer_pct` of a limit we surface REVIEW; over the
 # limit we surface BREACH.
 review_buffer_pct: 0.25
+
+changelog:
+  - version: "1.1"
+    date: "2026-04-29"
+    notes: >
+      Single-position cap raised 7.0% -> 10.0% ("let winners run").
+      Sector cap raised 35.0% -> 40.0% to reflect Tech overweight.
+      All other limits unchanged.
+  - version: "1.0"
+    date: "2026-04-21"
+    notes: >
+      Initial IPS adoption. 7% single-position cap, 35% sector cap,
+      10-20% cash band, beta band 0.85-1.25, TE ceiling 6%, MDD floor -15%,
+      vol ceiling 22%, no leverage/options/shorts.

@@ -147,6 +147,34 @@ div[data-testid="stMetricValue"], code, pre, .num {{
     font-variant-numeric: tabular-nums;
 }}
 
+/* Directional / sentiment colors — used in KPI deltas, position day %,
+   trigger distance-from-threshold, etc. Subtle enough to read on white,
+   distinct enough to scan at a glance. */
+.pos    {{ color: #0a5c2a !important; }}
+.neg    {{ color: #7a1f1f !important; }}
+.warn   {{ color: #8a6d00 !important; }}
+.muted  {{ color: var(--subtle) !important; }}
+
+/* KPI tiles + provenance badges (sourced / confirmed / calibrated) */
+.kpi-tile {{ min-height: 96px; }}
+.kpi-delta {{ margin-top: 2px; }}
+
+.badge {{
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: 10px;
+    border-radius: 2px;
+    background: var(--header-bg);
+    color: var(--subtle);
+    margin-left: 6px;
+    vertical-align: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}}
+.badge.sourced    {{ background: #e8efe8; color: #0a5c2a; }}
+.badge.confirmed  {{ background: var(--header-bg); color: var(--subtle); }}
+.badge.calibrated {{ background: #f4ecd8; color: #8a6d00; }}
+
 /* Tables — single-rule, alternating rows, tight padding. */
 table {{ border-collapse: collapse; width: 100%; font-size: 0.86rem; }}
 thead tr th {{

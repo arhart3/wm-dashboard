@@ -26,7 +26,16 @@ name: Fetch prices
 
 on:
   schedule:
-    - cron: "7,37 13-21 * * 1-5"
+    # Pre-market 08:50 ET ≈ 12:50 UTC (DST) / 13:50 UTC (EST). Fire both
+    # to absorb the DST shift; no harm if one is skipped.
+    - cron: "50 12 * * 1-5"
+    - cron: "50 13 * * 1-5"
+    # Every 15 minutes during the union of EST and EDT market windows
+    # (13:00–21:00 UTC). Offset 7 to avoid GitHub's :00/:15 peak load.
+    - cron: "7,22,37,52 13-20 * * 1-5"
+    # Post-close 16:15 ET ≈ 20:15 UTC (DST) / 21:15 UTC (EST).
+    - cron: "15 20 * * 1-5"
+    - cron: "15 21 * * 1-5"
   workflow_dispatch: {}  # Manual "Run workflow" button in the Actions UI.
 
 # Cancel any in-flight run when a newer one starts. Avoids two jobs racing

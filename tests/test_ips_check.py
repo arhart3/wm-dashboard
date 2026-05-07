@@ -69,14 +69,14 @@ def test_equity_size_under_limit_is_ok(ips):
 
 
 def test_equity_size_exact_limit_is_ok(ips):
-    # 7.0% exact: <= cap, but within review buffer -> REVIEW
-    breaches = check_position(_pos("NVDA", 7.0), ips)
+    # IPS v1.1 cap is 10.0%; exact-limit lands inside review buffer -> REVIEW
+    breaches = check_position(_pos("NVDA", ips.max_position_equity_pct), ips)
     size_b = next(b for b in breaches if "size" in b.field)
     assert size_b.severity == "REVIEW"
 
 
 def test_equity_size_just_over_is_breach(ips):
-    breaches = check_position(_pos("NVDA", 7.05), ips)
+    breaches = check_position(_pos("NVDA", ips.max_position_equity_pct + 0.05), ips)
     size_b = next(b for b in breaches if "size" in b.field)
     assert size_b.severity == "BREACH"
 
@@ -112,10 +112,11 @@ def test_sector_under_limit_is_ok(ips):
 
 
 def test_sector_just_over_is_breach(ips):
+    over = ips.max_sector_pct + 0.1  # 0.1% over the cap
     p = _portfolio(
         [
-            _pos("NVDA", 20.0, sector="Technology"),
-            _pos("AVGO", 15.1, sector="Technology"),
+            _pos("NVDA", over - 5.0, sector="Technology"),
+            _pos("AVGO", 5.0, sector="Technology"),
         ]
     )
     breaches = check_sectors(p, ips)

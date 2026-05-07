@@ -58,6 +58,8 @@ class IpsConfig:
     max_volatility_pct: float
     no_leverage: bool
     review_buffer_pct: float = 0.25
+    version: str = "1.0"
+    effective_date: str = ""
 
 
 def load_ips(path: Path) -> IpsConfig:
@@ -78,6 +80,8 @@ def load_ips(path: Path) -> IpsConfig:
         max_volatility_pct=float(raw["max_volatility_pct"]),
         no_leverage=bool(raw["no_leverage"]),
         review_buffer_pct=float(raw.get("review_buffer_pct", 0.25)),
+        version=str(raw.get("version", "1.0")),
+        effective_date=str(raw.get("effective_date", "")),
     )
 
 

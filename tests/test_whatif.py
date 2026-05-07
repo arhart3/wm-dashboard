@@ -105,11 +105,12 @@ def test_new_ticker_with_sector_is_added(ips_path: Path):
 def test_pushing_position_over_size_cap_breaches(ips_path: Path):
     portfolio = _build_portfolio()
     ips = load_ips(ips_path)
-    # NVDA 6.5 + 1.0 = 7.5 -> over 7.0 equity cap.
+    # NVDA 6.5 + (cap - 6.5 + 0.5) -> 0.5pt over the equity cap.
+    add_size = round(ips.max_position_equity_pct - 6.5 + 0.5, 2)
     trade = Trade(
         ticker="NVDA",
         action="BUY",
-        size_pct=1.0,
+        size_pct=add_size,
         pre_mortem="Wrong if Rubin announcement slips past 2026 H2",
     )
     result = simulate_trade(portfolio, trade, ips)
