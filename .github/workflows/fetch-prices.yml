@@ -7,26 +7,26 @@ name: Fetch prices
 #   * EST (winter, UTC-5): market =  14:30-21:00 UTC
 #   * EDT (summer, UTC-4): market =  13:30-20:00 UTC
 #
-# We use a single union window of 13:00 - 21:00 UTC, Mon-Fri, every :00 and
-# :30. That gives roughly +/- 1 hour of overrun on each end (a few extra runs
-# pre-open and post-close), which is acceptable per the spec — the cost of
-# an extra cron tick is one HTTP call per ticker, well under Finnhub's free
-# 60 req/min ceiling.
+# We use a single union window of 13:00 - 21:00 UTC, Mon-Fri, every :07 and
+# :37. The :07/:37 offset (rather than :00/:30) deliberately avoids GitHub
+# Actions' peak-of-hour load; runs scheduled at :00 are heavily delayed or
+# skipped during high-traffic periods. This offset has dramatically better
+# delivery rates against the same shared runner pool.
 #
 # Cron field reference: minute hour day-of-month month day-of-week
-#   "0,30 13-21 * * 1-5"  -> minutes :00 and :30,
+#   "7,37 13-21 * * 1-5"  -> minutes :07 and :37,
 #                            hours 13 through 21 inclusive (UTC),
 #                            any day-of-month, any month,
 #                            Monday through Friday.
 #
-# GitHub Actions cron is best-effort — runs may be delayed under heavy load
-# on the shared runner pool. Treat the snapshot timestamp in prices.json
+# GitHub Actions cron is best-effort — even with the offset, runs may be
+# delayed under heavy load. Treat the snapshot timestamp in prices.json
 # (not the cron schedule) as the source of truth for freshness.
 # ============================================================================
 
 on:
   schedule:
-    - cron: "0,30 13-21 * * 1-5"
+    - cron: "7,37 13-21 * * 1-5"
   workflow_dispatch: {}  # Manual "Run workflow" button in the Actions UI.
 
 # Cancel any in-flight run when a newer one starts. Avoids two jobs racing
