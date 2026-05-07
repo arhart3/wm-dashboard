@@ -302,9 +302,9 @@ tbody tr:last-child td {{ border-bottom: 1px solid var(--ink); }}
 }}
 /* Primary buttons (default treatment).
    IMPORTANT: Streamlit wraps the button label in a <p> inside a div, and our
-   global `h1,h2,h3,p,span,...{color:var(--ink)}` rule would otherwise repaint
-   the label dark, making the text invisible against the dark background.
-   We force the text color on every descendant of the button. */
+   global rule for h1/h2/h3/p/span (color set to var --ink) would otherwise
+   repaint the label dark, making the text invisible against the dark
+   background. We force the text color on every descendant of the button. */
 .stButton button, .stFormSubmitButton button, .stDownloadButton button, .stLinkButton a {{
     background: var(--ink) !important; color: var(--paper) !important;
     border: 1px solid var(--ink) !important; border-radius: 2px !important;
