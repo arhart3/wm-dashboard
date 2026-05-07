@@ -309,6 +309,33 @@ tbody tr:last-child td {{ border-bottom: 1px solid var(--ink); }}
     background: var(--paper) !important; color: var(--ink) !important;
 }}
 
+/* Sidebar buttons — softer tertiary style for sign-out and any future
+   sidebar actions. Higher specificity wins over the dark global button
+   rule above. Spec: transparent bg + thin rule border + slate text,
+   hover lifts to surface-1. Mirrors the .btn-signout snippet from the
+   design system. */
+[data-testid="stSidebar"] .stButton button {{
+    background: transparent !important;
+    color: var(--text) !important;
+    border: 1px solid var(--rule) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    width: 100% !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}}
+[data-testid="stSidebar"] .stButton button:hover {{
+    background: var(--surface-1) !important;
+    color: var(--text) !important;
+    border-color: var(--rule-strong) !important;
+}}
+
 div[data-testid="stMetric"] {{
     border: 1px solid var(--rule); padding: 8px 12px; background: var(--paper) !important;
 }}
