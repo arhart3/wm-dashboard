@@ -615,7 +615,8 @@ def _render_ips_panel(breaches: list[Breach]) -> None:
     )
     st.markdown(
         "<table>"
-        "<thead><tr><th></th><th>Constraint</th><th>Actual</th><th>Limit</th></tr></thead>"
+        "<thead><tr><th></th><th>Constraint</th>"
+        "<th>Drift (% of portfolio)</th><th>IPS Limit (% of portfolio)</th></tr></thead>"
         f"<tbody>{rows}</tbody></table>",
         unsafe_allow_html=True,
     )
@@ -633,7 +634,8 @@ def _render_ips_panel(breaches: list[Breach]) -> None:
         )
         st.markdown(
             "<table>"
-            "<thead><tr><th></th><th>Position check</th><th>Actual</th><th>Limit</th></tr></thead>"
+            "<thead><tr><th></th><th>Position check</th>"
+            "<th>Drift (% of portfolio)</th><th>IPS Limit (% of portfolio)</th></tr></thead>"
             f"<tbody>{rows}</tbody></table>",
             unsafe_allow_html=True,
         )
