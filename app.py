@@ -553,6 +553,7 @@ def page_performance() -> None:
     portfolio = _load_portfolio()
     ips = _load_ips()
     bench_cfg = _load_benchmark()
+    benchmarks = _load_benchmarks_all()
 
     st.markdown("## Performance")
     inception = datetime(2026, 4, 9)
@@ -573,27 +574,56 @@ def page_performance() -> None:
     }
     tickers = tuple(weights.keys())
     bench_ticker = bench_cfg["ticker"]
+    # Reference indices to overlay alongside the primary benchmark.
+    reference_specs = list(benchmarks.get("reference") or [])
+    reference_tickers = tuple(b["ticker"] for b in reference_specs)
 
     with st.spinner("Loading prices..."):
-        prices = _load_history(tickers + (bench_ticker,), str(start), str(end))
+        prices = _load_history(tickers + (bench_ticker,) + reference_tickers, str(start), str(end))
 
     if prices.empty:
         st.error("No price data returned. Check yfinance connectivity.")
         return
 
     bench_rets = prices[bench_ticker].pct_change().dropna() if bench_ticker in prices.columns else pd.Series(dtype=float)
-    port_rets = portfolio_returns(prices.drop(columns=[bench_ticker], errors="ignore"), weights)
+    port_rets = portfolio_returns(
+        prices.drop(columns=[bench_ticker, *reference_tickers], errors="ignore"),
+        weights,
+    )
 
     if port_rets.empty or bench_rets.empty:
         st.error("Insufficient overlapping data between portfolio and benchmark.")
         return
 
+    # Risk metrics use the primary IPS benchmark (S&P 500 TR). Reference
+    # indices are visual overlays only.
     snap = snapshot(port_rets, bench_rets)
     curves = compute_curves(port_rets, bench_rets)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=curves.index, y=curves["Portfolio"], name="Portfolio", mode="lines"))
     fig.add_trace(go.Scatter(x=curves.index, y=curves["Benchmark"], name=bench_cfg["label"], mode="lines"))
+    # Overlay each reference index as its own normalized cumulative-growth line,
+    # rebased to 1.0 at the chart start so they're directly comparable.
+    for spec in reference_specs:
+        rt = spec["ticker"]
+        if rt not in prices.columns:
+            continue
+        rets = prices[rt].pct_change().dropna()
+        if rets.empty:
+            continue
+        # Align to the same date range used in `curves` so the lines start
+        # together; reindex on the curves index, forward-filling the gaps.
+        ref_curve = (1.0 + rets).cumprod().reindex(curves.index, method="pad")
+        fig.add_trace(
+            go.Scatter(
+                x=ref_curve.index,
+                y=ref_curve.values,
+                name=spec.get("label", rt),
+                mode="lines",
+                line={"dash": "dot"},  # dotted to distinguish from primary
+            )
+        )
     fig.update_layout(**style.grayscale_layout(title=f"Cumulative growth · {snap.n_observations} obs"))
     style.style_lines(fig)
     st.plotly_chart(fig, width="stretch")

@@ -34,6 +34,13 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from wm_dashboard.notifications import (  # noqa: E402
+    fired_trigger_message,
+    send_sms,
+)
+
 TRIGGERS_YAML = ROOT / "config" / "triggers.yaml"
 PRICES_JSON = ROOT / "data" / "prices.json"
 HISTORY_YAML = ROOT / "data" / "trigger_history.yaml"
@@ -125,8 +132,16 @@ def _apply(
     results: list[tuple[dict, Eval | None]],
     today: date,
     snapshot_asof: str,
+    *,
+    notify: bool = False,
 ) -> tuple[int, int, list[dict]]:
-    """Mutate triggers in-place; return (fired_count, expired_count, history_rows)."""
+    """Mutate triggers in-place; return (fired_count, expired_count, history_rows).
+
+    When ``notify`` is true and Twilio credentials are configured in the
+    environment, sends one SMS per FIRED trigger. Notifications are
+    best-effort: a Twilio failure does not abort the apply, but it is
+    logged for diagnosis.
+    """
     fired = 0
     expired = 0
     history_rows: list[dict] = []
@@ -172,6 +187,16 @@ def _apply(
                     ),
                 }
             )
+            if notify:
+                send_sms(
+                    fired_trigger_message(
+                        ticker=str(t.get("ticker", "?")),
+                        rule=str(t.get("description", "")),
+                        action=str(t.get("action", "")),
+                        confidence=str(t.get("confidence", "—")),
+                        last_price=ev.last_price,
+                    )
+                )
     return fired, expired, history_rows
 
 
@@ -221,6 +246,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prices", type=Path, default=PRICES_JSON)
     parser.add_argument("--inspect", action="store_true", help="Read-only diagnostic.")
     parser.add_argument("--apply", action="store_true", help="Apply changes without prompting.")
+    parser.add_argument(
+        "--notify",
+        action="store_true",
+        help="Send SMS via Twilio when a trigger fires (no-op without TWILIO_* env).",
+    )
     args = parser.parse_args(argv)
 
     if not args.triggers.exists():
@@ -263,7 +293,9 @@ def main(argv: list[str] | None = None) -> int:
             print("aborted")
             return 0
 
-    fired_count, expired_count, history_rows = _apply(triggers, results, today, snapshot_asof)
+    fired_count, expired_count, history_rows = _apply(
+        triggers, results, today, snapshot_asof, notify=args.notify
+    )
     doc["triggers"] = triggers
     _write_triggers(doc)
     _append_history(history_rows)

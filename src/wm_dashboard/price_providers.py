@@ -26,7 +26,9 @@ from datetime import UTC, datetime
 LOG = logging.getLogger(__name__)
 
 FINNHUB_QUOTE_URL = "https://finnhub.io/api/v1/quote"
-FINNHUB_TIMEOUT = 8  # seconds
+POLYGON_PREV_URL = "https://api.polygon.io/v2/aggs/ticker/{ticker}/prev"
+ALPHAVANTAGE_QUOTE_URL = "https://www.alphavantage.co/query"
+HTTP_TIMEOUT = 8  # seconds — applies to all provider HTTP calls
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,107 @@ class ProviderQuote:
 
 def _utcnow_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def fetch_polygon(ticker: str, *, api_key: str | None = None, session=None) -> ProviderQuote | None:
+    """Fetch a single quote from Polygon.io's previous-close endpoint.
+
+    Polygon's ``/v2/aggs/ticker/{T}/prev`` returns the prior trading day's
+    OHLCV. On the free tier (5 calls/min, 2-year history), it's the
+    cheapest "real" market-data feed. Returns ``None`` on missing key,
+    HTTP failure, or empty result.
+    """
+    key = api_key if api_key is not None else os.environ.get("POLYGON_API_KEY")
+    if not key:
+        return None
+    if ticker.startswith("^"):
+        # Polygon uses I:SPX format for indices, not ^GSPC. Skip; let yfinance handle.
+        return None
+    try:
+        if session is None:
+            import requests
+            session = requests.Session()
+        resp = session.get(
+            POLYGON_PREV_URL.format(ticker=ticker),
+            params={"adjusted": "true", "apiKey": key},
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code != 200:
+            LOG.warning("Polygon HTTP %s for %s: %s", resp.status_code, ticker, resp.text[:200])
+            return None
+        body = resp.json()
+        results = body.get("results") or []
+        if not results:
+            return None
+        bar = results[0]
+        price = float(bar.get("c") or 0.0)
+        prev_close = float(bar.get("o") or 0.0)  # use open as a stand-in for prior comparison
+        if price <= 0:
+            return None
+        ts = bar.get("t")  # epoch ms
+        asof = (
+            datetime.fromtimestamp(int(ts) / 1000, tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            if ts
+            else _utcnow_iso()
+        )
+        # change_pct is intra-bar: close vs open. Not the prior-day close-to-close,
+        # but close enough for at-a-glance directional signal. yfinance handles
+        # close-to-close better; we annotate the source so callers can decide.
+        change_pct = ((price / prev_close - 1.0) * 100.0) if prev_close > 0 else None
+        return ProviderQuote(
+            price=price,
+            asof_utc=asof,
+            source="polygon",
+            currency="USD",
+            change_pct=change_pct,
+        )
+    except Exception as exc:  # noqa: BLE001
+        LOG.warning("Polygon fetch failed for %s: %s", ticker, exc)
+        return None
+
+
+def fetch_alphavantage(ticker: str, *, api_key: str | None = None, session=None) -> ProviderQuote | None:
+    """Fetch a single quote from Alpha Vantage's GLOBAL_QUOTE endpoint.
+
+    Free tier is heavily rate-limited (5 calls/min, 500/day). Useful as a
+    fallback for the few tickers Polygon and Finnhub miss.
+    """
+    key = api_key if api_key is not None else os.environ.get("ALPHAVANTAGE_API_KEY")
+    if not key:
+        return None
+    if ticker.startswith("^"):
+        return None
+    try:
+        if session is None:
+            import requests
+            session = requests.Session()
+        resp = session.get(
+            ALPHAVANTAGE_QUOTE_URL,
+            params={"function": "GLOBAL_QUOTE", "symbol": ticker, "apikey": key},
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code != 200:
+            LOG.warning("AlphaVantage HTTP %s for %s", resp.status_code, ticker)
+            return None
+        body = resp.json()
+        quote = body.get("Global Quote") or {}
+        price = float(quote.get("05. price") or 0.0)
+        prev_close = float(quote.get("08. previous close") or 0.0)
+        if price <= 0:
+            # Alpha Vantage rate-limit responses come back as 200 with a "Note" field;
+            # treat them as a miss so the fallback chain advances.
+            return None
+        change_pct = ((price / prev_close - 1.0) * 100.0) if prev_close > 0 else None
+        return ProviderQuote(
+            price=price,
+            asof_utc=_utcnow_iso(),
+            source="alphavantage",
+            currency="USD",
+            change_pct=change_pct,
+        )
+    except Exception as exc:  # noqa: BLE001
+        LOG.warning("AlphaVantage fetch failed for %s: %s", ticker, exc)
+        return None
 
 
 def fetch_finnhub(ticker: str, *, api_key: str | None = None, session=None) -> ProviderQuote | None:
@@ -67,7 +170,7 @@ def fetch_finnhub(ticker: str, *, api_key: str | None = None, session=None) -> P
         resp = session.get(
             FINNHUB_QUOTE_URL,
             params={"symbol": ticker, "token": key},
-            timeout=FINNHUB_TIMEOUT,
+            timeout=HTTP_TIMEOUT,
         )
         if resp.status_code != 200:
             LOG.warning("Finnhub HTTP %s for %s: %s", resp.status_code, ticker, resp.text[:200])

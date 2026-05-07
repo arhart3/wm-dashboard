@@ -163,10 +163,65 @@ your laptop being on.
 
 Resolution order per ticker (each step tagged on the row in the UI):
 
-1. **Finnhub** — real-time US equities, requires `FINNHUB_API_KEY`.
-2. **yfinance** — delayed but free, no key. Used for `^GSPC` always (Finnhub
-   free tier excludes indices) and as fallback for any equity Finnhub misses.
-3. **Last-known-good** from `data/history.parquet`, tagged red as `STALE`.
+1. **Polygon.io** — prior-day OHLCV, requires `POLYGON_API_KEY`. Free tier
+   = 5 calls/min, 2-year history.
+2. **AlphaVantage** — global quote endpoint, requires `ALPHAVANTAGE_API_KEY`.
+   Free tier = 5 calls/min, 500/day.
+3. **Finnhub** — real-time US equities, requires `FINNHUB_API_KEY`. Free
+   tier = 60 calls/min.
+4. **yfinance** — delayed but free, no key. Used for indices (`^GSPC`,
+   `^IXIC`, `^NDX`) always, and as fallback for any equity the paid
+   providers miss.
+5. **Last-known-good** from `data/history.parquet`, tagged red as `STALE`.
+
+All keys are optional. The fetcher logs which providers it used and
+walks straight to yfinance when none are configured. Indices skip the
+paid providers (none cover them on free tiers) and go straight to
+yfinance.
+
+### Adding API keys (Polygon, AlphaVantage, Finnhub)
+
+1. Get a key from any of:
+   - Polygon: https://polygon.io/dashboard/signup (free tier sufficient)
+   - AlphaVantage: https://www.alphavantage.co/support/#api-key
+   - Finnhub: https://finnhub.io/register
+2. Add it to `https://github.com/arhart3/wm-dashboard/settings/secrets/actions/new`:
+   - Name: `POLYGON_API_KEY` / `ALPHAVANTAGE_API_KEY` / `FINNHUB_API_KEY`
+   - Value: your key
+3. The next cron run picks it up automatically.
+
+### Trigger SMS via Twilio (optional)
+
+If `evaluate_triggers.py` flips a trigger from ARMED → FIRED during a cron
+run and the Twilio secrets are configured, you get an SMS like:
+
+    [WM Growth] LLY TRIGGER FIRED at 918.45.
+    Rule: Sustained close <= $920 -> add 4.0 -> 4.5%, fund from cash.
+    Action: ADD LLY 4.0% -> 4.5%, cash -0.5%. Conf: MED.
+
+Plus a pre-market 08:50 ET digest of all currently ARMED triggers.
+
+**Setup (~10 min):**
+
+1. Sign up at https://www.twilio.com/try-twilio (free trial includes a
+   number + ~$15 credit).
+2. From the Twilio console, copy:
+   - **Account SID** (top of console)
+   - **Auth Token** (top of console)
+   - **Twilio phone number** in E.164 format (e.g. `+15551234567`)
+3. Add 4 secrets at
+   `https://github.com/arhart3/wm-dashboard/settings/secrets/actions/new`:
+   - `TWILIO_ACCOUNT_SID`
+   - `TWILIO_AUTH_TOKEN`
+   - `TWILIO_FROM` — your Twilio number, E.164
+   - `WM_NOTIFY_PHONE` — your phone, E.164 (e.g. `+15559876543`)
+4. The next cron run + the `daily-summary.yml` workflow start sending SMS
+   automatically. Without all four secrets set, both flows no-op silently
+   (the digest still prints to the workflow log so you can verify the
+   wiring before paying).
+
+Cost: Twilio bills ~$0.0079/SMS in the US. With 1 fired trigger/week +
+1 daily digest = ~22/month ≈ **$0.18/month**.
 
 ### Deploying to Streamlit Cloud
 

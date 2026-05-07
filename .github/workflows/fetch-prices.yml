@@ -73,10 +73,30 @@ jobs:
 
       - name: Fetch prices
         env:
-          # Optional. The fetch script falls back to yfinance when unset.
+          # All provider keys are optional. The fetcher walks the chain:
+          # Polygon -> AlphaVantage -> Finnhub -> yfinance -> last-known-good.
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+          ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: |
           python scripts/fetch_prices.py -v
+
+      - name: Evaluate triggers
+        # Reads the just-refreshed prices.json, fires any ARMED trigger
+        # whose rule is now satisfied, and (if Twilio is configured) sends
+        # an SMS. Never auto-executes trades.
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+          WM_NOTIFY_PHONE: ${{ secrets.WM_NOTIFY_PHONE }}
+        run: |
+          # Twilio is an optional dependency; install only when secrets
+          # are present so we don't pay an install cost on every cron run.
+          if [[ -n "${TWILIO_ACCOUNT_SID}" ]]; then
+            pip install --quiet twilio
+          fi
+          python scripts/evaluate_triggers.py --apply --notify
 
       - name: Commit refreshed snapshot
         env:
@@ -86,7 +106,7 @@ jobs:
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
-          git add data/prices.json data/history.parquet
+          git add data/prices.json data/history.parquet config/triggers.yaml data/trigger_history.yaml
           if git diff --cached --quiet; then
             echo "No price changes to commit."
             exit 0

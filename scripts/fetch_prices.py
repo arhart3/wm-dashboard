@@ -33,7 +33,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from wm_dashboard.price_providers import (  # noqa: E402
     ProviderQuote,
+    fetch_alphavantage,
     fetch_finnhub,
+    fetch_polygon,
     fetch_yfinance,
 )
 
@@ -112,19 +114,32 @@ def resolve_quote(
     spec: TickerSpec,
     *,
     history: pd.DataFrame,
-    finnhub_key: str | None,
+    polygon_key: str | None = None,
+    alphavantage_key: str | None = None,
+    finnhub_key: str | None = None,
 ) -> ProviderQuote | None:
-    """Walk the Finnhub -> yfinance -> stale fallback chain.
+    """Walk the provider fallback chain:
 
-    Indices and other Finnhub-unsupported symbols are routed straight to
-    yfinance to save a guaranteed-failed Finnhub call.
+        Polygon -> AlphaVantage -> Finnhub -> yfinance -> last-known-good
+
+    Indices (``^``-prefixed tickers) skip the paid providers and go
+    straight to yfinance because none of the free tiers cover them. The
+    chain is greedy — first non-``None`` result wins, regardless of
+    whether higher-priority keys were missing.
     """
-    finnhub_supported = spec.asset_class != "index" and not spec.ticker.startswith("^")
-    if finnhub_supported:
-        quote = fetch_finnhub(spec.ticker, api_key=finnhub_key)
-        if quote is not None:
-            LOG.info("%s: finnhub %.4f", spec.ticker, quote.price)
-            return quote
+    paid_supported = spec.asset_class != "index" and not spec.ticker.startswith("^")
+    if paid_supported:
+        for fetcher, label, key in (
+            (fetch_polygon, "polygon", polygon_key),
+            (fetch_alphavantage, "alphavantage", alphavantage_key),
+            (fetch_finnhub, "finnhub", finnhub_key),
+        ):
+            if not key:
+                continue
+            quote = fetcher(spec.ticker, api_key=key)
+            if quote is not None:
+                LOG.info("%s: %s %.4f", spec.ticker, label, quote.price)
+                return quote
     quote = fetch_yfinance(spec.ticker)
     if quote is not None:
         LOG.info("%s: yfinance %.4f", spec.ticker, quote.price)
@@ -196,10 +211,14 @@ def main(argv: list[str] | None = None) -> int:
 
     specs = load_tickers(args.tickers)
     history = load_existing_history(args.history)
+    polygon_key = os.environ.get("POLYGON_API_KEY")
+    alphavantage_key = os.environ.get("ALPHAVANTAGE_API_KEY")
     finnhub_key = os.environ.get("FINNHUB_API_KEY")
     LOG.info(
-        "Refreshing %d tickers (Finnhub key %s, history rows %d)",
+        "Refreshing %d tickers (polygon=%s, alphavantage=%s, finnhub=%s, history rows %d)",
         len(specs),
+        "set" if polygon_key else "missing",
+        "set" if alphavantage_key else "missing",
         "set" if finnhub_key else "missing",
         len(history),
     )
@@ -209,13 +228,23 @@ def main(argv: list[str] | None = None) -> int:
     failed: list[str] = []
 
     for spec in specs:
-        quote = resolve_quote(spec, history=history, finnhub_key=finnhub_key)
+        quote = resolve_quote(
+            spec,
+            history=history,
+            polygon_key=polygon_key,
+            alphavantage_key=alphavantage_key,
+            finnhub_key=finnhub_key,
+        )
         if quote is None:
             failed.append(spec.ticker)
             continue
         snapshot[spec.ticker] = quote.to_dict()
         new_rows.append({"ticker": spec.ticker, **quote.to_dict()})
-        if quote.source == "finnhub":
+        # Sleep between paid-provider calls to stay under rate limits. Polygon
+        # free tier is 5/min; AlphaVantage free is 5/min; Finnhub free is 60/min.
+        if quote.source in ("polygon", "alphavantage"):
+            time.sleep(13.0)  # Conservative: ~4.6 req/min, well under 5/min ceiling.
+        elif quote.source == "finnhub":
             time.sleep(args.finnhub_sleep)
 
     payload = {
