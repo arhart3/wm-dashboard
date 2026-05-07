@@ -33,6 +33,13 @@ fetch = [
     "pyyaml>=6.0",
     "yfinance>=0.2.40",
 ]
+# LLM-driven forecast page (optional). Pulls Claude SDK; the rest of the
+# dashboard runs without it, and forecast.py gracefully falls back to an
+# error card when ANTHROPIC_API_KEY is missing.
+forecast = [
+    "anthropic>=0.40.0",
+    "yfinance>=0.2.40",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

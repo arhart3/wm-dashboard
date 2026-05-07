@@ -190,6 +190,35 @@ yfinance.
    - Value: your key
 3. The next cron run picks it up automatically.
 
+### LLM-driven forecast page (optional)
+
+The Forecast tab generates a structured one-week forward view for any
+ticker — return distribution (5th / median / 95th percentile), top
+three catalysts, BUY/HOLD/TRIM action with confidence, and a falsifiable
+pre-mortem. Output shape is enforced by Anthropic's tool-use schema
+(the model can't return free text).
+
+**Setup:**
+
+1. Get a key at https://console.anthropic.com/.
+2. Add `ANTHROPIC_API_KEY` to Streamlit Cloud secrets via
+   `https://share.streamlit.io` → your app → Settings → Secrets:
+
+   ```toml
+   ANTHROPIC_API_KEY = "sk-ant-..."
+   ```
+
+3. Default model is **Claude Haiku 4.5** (~$0.005 per forecast call).
+   Override with the dropdown on the page or via the `ANTHROPIC_MODEL`
+   secret. Sonnet 4.6 ≈ $0.02/call; Opus 4.7 ≈ $0.04/call.
+
+Without `ANTHROPIC_API_KEY`, the Forecast tab shows an error card
+explaining how to enable it; the rest of the dashboard runs normally.
+
+The forecast is presented as one input among many — per the IPS, the
+human still owns the trade decision. The page renders the model's
+disclaimer prominently and never auto-executes anything.
+
 ### Trigger SMS via Twilio (optional)
 
 If `evaluate_triggers.py` flips a trigger from ARMED → FIRED during a cron
