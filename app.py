@@ -146,6 +146,38 @@ def _format_pct(x: float | None, places: int = 2, signed: bool = False) -> str:
     return fmt.format(x)
 
 
+def _ticker_links_html(ticker: str) -> str:
+    """Inline external-research links rendered under each ticker symbol.
+
+    Skipped for non-tradable rows (CASH, combined ``XOM/EOG``-style triggers,
+    portfolio-level pseudo-tickers). For real symbols, four free research
+    sites are linked in the order Aaron requested: Yahoo, TradingView,
+    Finviz, SeekingAlpha. All open in a new tab with ``rel='noopener'`` so
+    clicking can't hijack the dashboard's session.
+    """
+    if not ticker or ticker.upper() in {"CASH", "PORTFOLIO"} or "/" in ticker:
+        return ""
+    t = ticker.upper()
+    links = [
+        ("Yahoo",        f"https://finance.yahoo.com/quote/{t}"),
+        ("TradingView",  f"https://www.tradingview.com/symbols/{t}/"),
+        ("Finviz",       f"https://finviz.com/quote.ashx?t={t}"),
+        ("SeekingAlpha", f"https://seekingalpha.com/symbol/{t}"),
+    ]
+    anchors = "".join(
+        f"<a href='{href}' target='_blank' rel='noopener noreferrer' "
+        f"class='muted ticker-link' "
+        f"style='font-size:10px;text-decoration:underline dotted;color:var(--text-secondary)'>"
+        f"{label}</a>"
+        for label, href in links
+    )
+    return (
+        f"<div class='ticker-links' "
+        f"style='display:flex;gap:8px;margin-top:2px'>"
+        f"{anchors}</div>"
+    )
+
+
 def _format_money(x: float | None) -> str:
     if x is None or pd.isna(x):
         return "—"
@@ -385,9 +417,12 @@ def page_dashboard() -> None:
         except (ValueError, AttributeError):
             pass
         src_html = _source_badge(r.get("Source", "")) if r.get("Source") else ""
+        ticker_cell = (
+            f"<strong>{r['Ticker']}</strong>{_ticker_links_html(r['Ticker'])}"
+        )
         table_rows.append(
             f"<tr class='{cls}'>"
-            f"<td>{r['Ticker']}</td>"
+            f"<td>{ticker_cell}</td>"
             f"<td>{r['Sector']}</td>"
             f"<td class='num'>{r['Target %']}</td>"
             f"<td class='num'>{r['Current %']}</td>"
@@ -473,7 +508,7 @@ def page_dashboard() -> None:
 
             rows.append(
                 f"<tr>"
-                f"<td><strong>{ticker}</strong>{stale_tag}</td>"
+                f"<td><strong>{ticker}</strong>{stale_tag}{_ticker_links_html(ticker)}</td>"
                 f"<td>{rule_html}</td>"
                 f"<td class='num'>{last_html}</td>"
                 f"<td class='num {distance_cls}'>{distance_html}</td>"
