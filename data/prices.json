@@ -1,6 +1,6 @@
 {
   "failed": [],
-  "generated_utc": "2026-05-18T23:52:05Z",
+  "generated_utc": "2026-05-19T08:50:53Z",
   "prices": {
     "ABBV": {
       "asof_utc": "2026-05-18T04:00:00Z",
@@ -200,9 +200,9 @@
     },
     "^IXIC": {
       "asof_utc": "2026-05-18T04:00:00Z",
-      "change_pct": -0.5125091679084148,
+      "change_pct": -0.5125240629667793,
       "currency": "USD",
-      "price": 26090.734375,
+      "price": 26090.73046875,
       "source": "yfinance"
     },
     "^NDX": {
