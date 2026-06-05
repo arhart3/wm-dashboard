@@ -1,6 +1,6 @@
 {
   "failed": [],
-  "generated_utc": "2026-06-05T20:17:46Z",
+  "generated_utc": "2026-06-05T21:43:30Z",
   "prices": {
     "ABBV": {
       "asof_utc": "2026-06-05T04:00:00Z",
@@ -123,9 +123,9 @@
     },
     "ORCL": {
       "asof_utc": "2026-06-05T04:00:00Z",
-      "change_pct": -9.596341299487932,
+      "change_pct": -9.587883563183619,
       "currency": "USD",
-      "price": 213.66000366210938,
+      "price": 213.67999267578125,
       "source": "yfinance"
     },
     "PANW": {
