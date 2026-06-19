@@ -1,6 +1,6 @@
 {
   "failed": [],
-  "generated_utc": "2026-06-19T18:11:02Z",
+  "generated_utc": "2026-06-19T20:07:08Z",
   "prices": {
     "ABBV": {
       "asof_utc": "2026-06-18T04:00:00Z",
@@ -193,23 +193,23 @@
     },
     "^GSPC": {
       "asof_utc": "2026-06-18T04:00:00Z",
-      "change_pct": 1.0846212235623431,
+      "change_pct": NaN,
       "currency": "USD",
-      "price": 7500.580078125,
+      "price": NaN,
       "source": "yfinance"
     },
     "^IXIC": {
       "asof_utc": "2026-06-18T04:00:00Z",
-      "change_pct": 1.9071401604282556,
+      "change_pct": NaN,
       "currency": "USD",
-      "price": 26517.9296875,
+      "price": NaN,
       "source": "yfinance"
     },
     "^NDX": {
       "asof_utc": "2026-06-18T04:00:00Z",
-      "change_pct": 2.477980158148685,
+      "change_pct": NaN,
       "currency": "USD",
-      "price": 30406.189453125,
+      "price": NaN,
       "source": "yfinance"
     }
   },
