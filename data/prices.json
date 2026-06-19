@@ -1,6 +1,6 @@
 {
   "failed": [],
-  "generated_utc": "2026-06-19T16:25:01Z",
+  "generated_utc": "2026-06-19T18:11:02Z",
   "prices": {
     "ABBV": {
       "asof_utc": "2026-06-18T04:00:00Z",
@@ -11,16 +11,16 @@
     },
     "AMZN": {
       "asof_utc": "2026-06-18T04:00:00Z",
-      "change_pct": NaN,
+      "change_pct": 2.9010523745888195,
       "currency": "USD",
-      "price": NaN,
+      "price": 244.38999938964844,
       "source": "yfinance"
     },
     "AVGO": {
       "asof_utc": "2026-06-18T04:00:00Z",
-      "change_pct": NaN,
+      "change_pct": 4.695854541522904,
       "currency": "USD",
-      "price": NaN,
+      "price": 411.3500061035156,
       "source": "yfinance"
     },
     "COST": {
