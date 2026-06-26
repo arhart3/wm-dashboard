@@ -21,3 +21,19 @@ history:
   notes: 'Add to 3.5% pre-staged in Daily_2026-04-22 contingent on earnings beat + neutral MA guidance.
     Workbook at 3.00% indicates contingency triggered: earnings outcome did not meet conditions, add was
     reversed, position held flat at 3.00%.'
+- ticker: LLY
+  review_by: '2026-05-15'
+  closed_on: '2026-06-26'
+  outcome: EXECUTED
+  confidence_at_open: MED
+  workbook_weight_at_close_pct: 4.5
+  description: Sustained close <= $920 -> add 4.0 -> 4.5%, fund from cash.
+  notes: Workbook weight 4.50% matches post-trigger target; bookkeeping catch-up.
+- ticker: WTI
+  review_by: '2026-05-15'
+  closed_on: '2026-06-26'
+  outcome: EXPIRED
+  confidence_at_open: MED
+  workbook_weight_at_close_pct: null
+  description: Sustained WTI close < $90 -> trim XOM/EOG, raise cash 1.0%.
+  notes: Ticker not in workbook; no action taken in window.
