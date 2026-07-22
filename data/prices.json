@@ -1,187 +1,187 @@
 {
   "failed": [],
-  "generated_utc": "2026-07-22T15:23:41Z",
+  "generated_utc": "2026-07-22T16:52:12Z",
   "prices": {
     "ABBV": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 0.013667966136332588,
+      "change_pct": -0.25381067543227553,
       "currency": "USD",
-      "price": 256.135009765625,
+      "price": 255.4499969482422,
       "source": "yfinance"
     },
     "AMZN": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -1.5592811806770634,
+      "change_pct": -1.4340549416255066,
       "currency": "USD",
-      "price": 243.69000244140625,
+      "price": 244.0,
       "source": "yfinance"
     },
     "AVGO": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 1.3169460123908516,
+      "change_pct": 2.3420681774539043,
       "currency": "USD",
-      "price": 391.5899963378906,
+      "price": 395.5520935058594,
       "source": "yfinance"
     },
     "COST": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.8189648943730865,
+      "change_pct": -0.6144896921639997,
       "currency": "USD",
-      "price": 921.6099853515625,
+      "price": 923.510009765625,
       "source": "yfinance"
     },
     "CRWD": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -1.6871519475292418,
+      "change_pct": -1.8833329634716622,
       "currency": "USD",
-      "price": 187.9250030517578,
+      "price": 187.5500030517578,
       "source": "yfinance"
     },
     "DASH": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -4.299612712055101,
+      "change_pct": -4.570828690062445,
       "currency": "USD",
-      "price": 179.9550018310547,
+      "price": 179.44500732421875,
       "source": "yfinance"
     },
     "EOG": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 1.1224209306669675,
+      "change_pct": 1.0143626647308723,
       "currency": "USD",
-      "price": 145.0500030517578,
+      "price": 144.89500427246094,
       "source": "yfinance"
     },
     "GOOGL": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 0.2318861270155459,
+      "change_pct": 0.2909433338276646,
       "currency": "USD",
-      "price": 347.9549865722656,
+      "price": 348.1600036621094,
       "source": "yfinance"
     },
     "INTC": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 0.8060750385159521,
+      "change_pct": -0.8036006402180051,
       "currency": "USD",
-      "price": 106.30000305175781,
+      "price": 104.60260009765625,
       "source": "yfinance"
     },
     "JPM": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 0.7733924702919337,
+      "change_pct": 0.9269129529934972,
       "currency": "USD",
-      "price": 347.8999938964844,
+      "price": 348.42999267578125,
       "source": "yfinance"
     },
     "LLY": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -1.1000462251423038,
+      "change_pct": -0.9796593795860953,
       "currency": "USD",
-      "price": 1162.47998046875,
+      "price": 1163.89501953125,
       "source": "yfinance"
     },
     "META": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -2.2693007885813077,
+      "change_pct": -2.2025120345371296,
       "currency": "USD",
-      "price": 629.2000122070312,
+      "price": 629.6300048828125,
       "source": "yfinance"
     },
     "MSFT": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -1.9811451622407272,
+      "change_pct": -2.3230647980829633,
       "currency": "USD",
-      "price": 389.8699951171875,
+      "price": 388.510009765625,
       "source": "yfinance"
     },
     "MU": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 0.1385396564737018,
+      "change_pct": 0.2405205862096027,
       "currency": "USD",
-      "price": 972.1649780273438,
+      "price": 973.155029296875,
       "source": "yfinance"
     },
     "NEE": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 1.0917765053347184,
+      "change_pct": 1.660410644154986,
       "currency": "USD",
-      "price": 88.88999938964844,
+      "price": 89.38999938964844,
       "source": "yfinance"
     },
     "NFLX": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 2.1698056398636867,
+      "change_pct": 1.6819554537562231,
       "currency": "USD",
-      "price": 70.16000366210938,
+      "price": 69.82499694824219,
       "source": "yfinance"
     },
     "NVDA": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 2.5013329081571722,
+      "change_pct": 3.0536938762485644,
       "currency": "USD",
-      "price": 212.47500610351562,
+      "price": 213.6199951171875,
       "source": "yfinance"
     },
     "ORCL": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.4643872122102932,
+      "change_pct": -0.700511112373503,
       "currency": "USD",
-      "price": 126.45999908447266,
+      "price": 126.16000366210938,
       "source": "yfinance"
     },
     "PANW": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -2.136489168199529,
+      "change_pct": -1.9289803364755942,
       "currency": "USD",
-      "price": 334.8399963378906,
+      "price": 335.54998779296875,
       "source": "yfinance"
     },
     "PLTR": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -4.349467897767722,
+      "change_pct": -5.118348204498591,
       "currency": "USD",
-      "price": 126.88999938964844,
+      "price": 125.87000274658203,
       "source": "yfinance"
     },
     "QQQ": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.03243867557914948,
+      "change_pct": -0.09167713806857991,
       "currency": "USD",
-      "price": 708.739990234375,
+      "price": 708.3200073242188,
       "source": "yfinance"
     },
     "SCHD": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 0.3958009969354581,
+      "change_pct": 0.5152398435718464,
       "currency": "USD",
-      "price": 32.94990158081055,
+      "price": 32.98910140991211,
       "source": "yfinance"
     },
     "TSM": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.251990495643839,
+      "change_pct": -0.5970121363096048,
       "currency": "USD",
-      "price": 423.5400085449219,
+      "price": 422.07501220703125,
       "source": "yfinance"
     },
     "UNH": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.53855988785253,
+      "change_pct": -0.8685707555651456,
       "currency": "USD",
-      "price": 434.0,
+      "price": 432.55999755859375,
       "source": "yfinance"
     },
     "V": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.16862629733153112,
+      "change_pct": 0.0,
       "currency": "USD",
-      "price": 355.2200012207031,
+      "price": 355.82000732421875,
       "source": "yfinance"
     },
     "VUG": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.19157195029493312,
+      "change_pct": -0.16672526233186824,
       "currency": "USD",
-      "price": 85.96499633789062,
+      "price": 85.98639678955078,
       "source": "yfinance"
     },
     "XOM": {
@@ -193,23 +193,23 @@
     },
     "^GSPC": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": 0.09228263090290678,
+      "change_pct": 0.15314547090086172,
       "currency": "USD",
-      "price": 7516.1298828125,
+      "price": 7520.7001953125,
       "source": "yfinance"
     },
     "^IXIC": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.07562372946238183,
+      "change_pct": -0.13911470344823984,
       "currency": "USD",
-      "price": 25817.671875,
+      "price": 25801.267578125,
       "source": "yfinance"
     },
     "^NDX": {
       "asof_utc": "2026-07-22T04:00:00Z",
-      "change_pct": -0.04802561080082812,
+      "change_pct": -0.11852659114227615,
       "currency": "USD",
-      "price": 29141.177734375,
+      "price": 29120.623046875,
       "source": "yfinance"
     }
   },
