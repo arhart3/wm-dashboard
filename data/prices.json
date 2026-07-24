@@ -1,6 +1,6 @@
 {
   "failed": [],
-  "generated_utc": "2026-07-24T15:03:04Z",
+  "generated_utc": "2026-07-24T15:18:19Z",
   "prices": {
     "ABBV": {
       "asof_utc": "2026-07-24T04:00:00Z",
@@ -53,9 +53,9 @@
     },
     "GOOGL": {
       "asof_utc": "2026-07-24T04:00:00Z",
-      "change_pct": 0.4312364590195683,
+      "change_pct": 0.8498889440278212,
       "currency": "USD",
-      "price": 319.05999755859375,
+      "price": 320.3900146484375,
       "source": "yfinance"
     },
     "INTC": {
@@ -81,9 +81,9 @@
     },
     "META": {
       "asof_utc": "2026-07-24T04:00:00Z",
-      "change_pct": 0.004128760117216856,
+      "change_pct": 0.3580339931897658,
       "currency": "USD",
-      "price": 606.125,
+      "price": 608.27001953125,
       "source": "yfinance"
     },
     "MSFT": {
